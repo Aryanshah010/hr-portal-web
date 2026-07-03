@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import { env } from "./config/environment.js";
 import { connectDatabase } from "./config/db.js";
 
@@ -8,6 +9,7 @@ import {
 } from "./middleware/securityHeaders.js";
 import { configureCors } from "./middleware/corsPolicy.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
+import { globalLimiter } from "./middleware/rateLimiter.js";
 
 const app = express();
 
@@ -16,8 +18,10 @@ await connectDatabase();
 app.use(configureSecurityHeaders());
 app.use(enforceSupplementalHeaders);
 app.use(configureCors());
+app.use(globalLimiter);
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/health", (req, res) => {
   res

@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import path from "path";
 
 dotenv.config();
 
@@ -9,8 +8,9 @@ const requiredEnvVars = [
   "MONGO_URI",
   "FRONTEND_URL",
   "DATABASE_ENCRYPTION_KEY",
+  "JWT_SECRET",
+  "PAYROLL_ENCRYPTION_KEY",
 ];
-
 
 for (const varName of requiredEnvVars) {
   if (!process.env[varName]) {
@@ -21,10 +21,18 @@ for (const varName of requiredEnvVars) {
   }
 }
 
-const aesKey = process.env.DATABASE_ENCRYPTION_KEY;
-if (aesKey.length !== 64) {
+const aesDbKey = process.env.DATABASE_ENCRYPTION_KEY;
+if (aesDbKey.length !== 64) {
   console.error(
-    "[FATAL ERROR] DATABASE_ENCRYPTION_KEY must be a 64-character hex string (256-bit).",
+    "[FATAL ERROR] DATABASE_ENCRYPTION_KEY must be exactly a 64-character hex string (256-bit key structure).",
+  );
+  process.exit(1);
+}
+
+const aesPayrollKey = process.env.PAYROLL_ENCRYPTION_KEY;
+if (aesPayrollKey.length !== 64) {
+  console.error(
+    "[FATAL ERROR] PAYROLL_ENCRYPTION_KEY must be exactly a 64-character hex string (256-bit key structure).",
   );
   process.exit(1);
 }
@@ -34,5 +42,7 @@ export const env = {
   port: parseInt(process.env.PORT, 10) || 5000,
   mongoUri: process.env.MONGO_URI,
   frontendUrl: process.env.FRONTEND_URL,
-  encryptionKey: Buffer.from(aesKey, "hex"),
+  jwtSecret: process.env.JWT_SECRET,
+  dbEncryptionKey: Buffer.from(aesDbKey, "hex"),
+  payrollEncryptionKey: Buffer.from(aesPayrollKey, "hex"),
 };

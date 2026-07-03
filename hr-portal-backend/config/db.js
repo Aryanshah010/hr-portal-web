@@ -5,9 +5,9 @@ import { env } from "./environment.js";
 export const connectDatabase = async () => {
   try {
     const connectionOptions = {
-      autoIndex: env.nodeEnv !== "production", 
-      maxPoolSize: 10, 
-      serverSelectionTimeoutMS: 5000, 
+      autoIndex: env.nodeEnv !== "production",
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
     };
 
     const conn = await mongoose.connect(env.mongoUri, connectionOptions);
