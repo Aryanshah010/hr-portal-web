@@ -22,6 +22,7 @@ app.use(globalLimiter);
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(cleanNoSqlInjection);
 
 app.get("/health", (req, res) => {
   res
