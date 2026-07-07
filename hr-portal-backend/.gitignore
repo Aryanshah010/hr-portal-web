@@ -10,6 +10,8 @@ web_modules/
 .env.development
 *.env
 
+.project-context
+
 # Local Database / Storage Dumps 
 .mongodb/
 *.db
