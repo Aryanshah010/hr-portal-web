@@ -1,23 +1,182 @@
 import { z } from "zod";
 
+const rejectObjectValue = (val) => typeof val === "string";
+const rejectOperatorString = (val) => !/^\s*\$/.test(val);
+const rejectJsonString = (val) => !/^\s*[\[{]/.test(val);
+
+const safeString = (minLen = 1, maxLen = 255) =>
+  z
+    .string({
+      invalid_type_error:
+        "Value must be a plain string, not an object or array. Injection attempt detected.",
+    })
+    .trim()
+    .min(minLen, `Minimum length is ${minLen} characters.`)
+    .max(maxLen, `Maximum length is ${maxLen} characters.`)
+    .refine(rejectObjectValue, {
+      message: "Object-type values are not permitted in this field.",
+    })
+    .refine(rejectOperatorString, {
+      message:
+        "Value contains a forbidden operator prefix ($). Injection attempt blocked.",
+    })
+    .refine(rejectJsonString, {
+      message:
+        "Value begins with JSON structural characters. Possible re-parse injection attempt blocked.",
+    });
+
+const safeEmail = z
+  .string({ invalid_type_error: "Email must be a plain string." })
+  .trim()
+  .toLowerCase()
+  .max(254, "Email address must not exceed 254 characters.")
+  .email("Email address format is invalid.")
+  .refine(rejectOperatorString, {
+    message: "Email contains a forbidden operator prefix.",
+  })
+  .refine(rejectJsonString, {
+    message: "Email contains forbidden JSON structural characters.",
+  });
+
+const passwordComplexity = z
+  .string({ invalid_type_error: "Password must be a plain string." })
+  .min(12, "Password must be at least 12 characters long.")
+  .max(128, "Password must not exceed 128 characters.")
+  .refine((v) => /[A-Z]/.test(v), {
+    message: "Password must contain at least one uppercase letter.",
+  })
+  .refine((v) => /[a-z]/.test(v), {
+    message: "Password must contain at least one lowercase letter.",
+  })
+  .refine((v) => /[0-9]/.test(v), {
+    message: "Password must contain at least one numeric digit.",
+  })
+  .refine((v) => /[!@#$%^&*()\-_=+\[\]{}|;:'",.<>?/`~]/.test(v), {
+    message: "Password must contain at least one special character.",
+  })
+  .refine(rejectOperatorString, {
+    message: "Password contains a forbidden operator prefix.",
+  });
+
 export const schemas = {
   login: z.object({
-    email: z.email().trim().toLowerCase(),
-    password: z.string().min(8),
+    email: safeEmail,
+    password: z
+      .string({
+        invalid_type_error:
+          "Password must be a plain string, not an object. Injection attempt detected.",
+      })
+      .min(1, "Password is required."),
+  }),
+
+  register: z.object({
+    email: safeEmail,
+    password: passwordComplexity,
+    name: safeString(2, 100),
+    role: z.enum(["Employee", "Manager", "Admin"]).default("Employee"),
   }),
 
   createEmployee: z.object({
-    name: z.string().trim().min(2).max(50),
-    email: z.email().trim().toLowerCase(),
+    name: safeString(2, 100),
+    email: safeEmail,
     nationalId: z
-      .string()
+      .string({ invalid_type_error: "National ID must be a plain string." })
       .regex(
-        /^[A-Za-z0-9-]+$/,
-        "National ID must contain only letters, numbers, and hyphens",
+        /^[A-Za-z0-9-]{4,20}$/,
+        "National ID must be 4–20 characters containing only letters, digits, and hyphens.",
+      )
+      .refine(rejectOperatorString, {
+        message: "National ID contains a forbidden operator prefix.",
+      }),
+    baseSalary: z
+      .number({
+        invalid_type_error:
+          "Base salary must be a number. Object-type values are not permitted.",
+        required_error: "Base salary is required.",
+      })
+      .positive("Base salary must be a positive number.")
+      .min(
+        17300,
+        "Base salary must meet the Nepal statutory minimum of NPR 17,300.",
       ),
-    baseSalary: z.number().positive(),
     role: z.enum(["Employee", "Manager", "Admin"]).default("Employee"),
+    department: safeString(1, 100).optional().nullable(),
+    employmentType: z
+      .enum(["Regular", "WorkBased", "TimeBound", "Casual", "PartTime"])
+      .default("Regular"),
   }),
+
+  updateEmployee: z
+    .object({
+      name: safeString(2, 100).optional(),
+      department: safeString(1, 100).optional().nullable(),
+      role: z.enum(["Employee", "Manager", "Admin"]).optional(),
+      employmentType: z
+        .enum(["Regular", "WorkBased", "TimeBound", "Casual", "PartTime"])
+        .optional(),
+      isActive: z.boolean().optional(),
+    })
+    .strict(),
+
+  updateSalary: z.object({
+    baseSalary: z
+      .number({
+        invalid_type_error:
+          "Base salary must be a number. Object-type values are not permitted.",
+        required_error: "Base salary is required.",
+      })
+      .positive("Base salary must be a positive number.")
+      .min(
+        17300,
+        "Base salary must meet the Nepal statutory minimum of NPR 17,300.",
+      )
+      .max(
+        10000000,
+        "Base salary value is unrealistically high. Possible data entry error.",
+      ),
+  }),
+
+  fetchAvatarUrl: z.object({
+    url: z
+      .string({ invalid_type_error: "URL must be a plain string." })
+      .trim()
+      .min(10, "URL is too short to be valid.")
+      .max(500, "URL must not exceed 500 characters.")
+      .url("URL format is invalid.")
+      .refine(
+        (v) => /^https?:\/\//i.test(v),
+        "Only http and https URL schemes are permitted. Other schemes (file://, gopher://, etc.) are blocked.",
+      )
+      .refine(rejectOperatorString, {
+        message: "URL contains a forbidden operator prefix.",
+      }),
+  }),
+
+  verifyTotp: z.object({
+    token: z
+      .string({ invalid_type_error: "TOTP token must be a plain string." })
+      .trim()
+      .regex(/^\d{6}$/, "TOTP token must be exactly 6 numeric digits."),
+  }),
+
+  changePassword: z
+    .object({
+      currentPassword: z
+        .string({
+          invalid_type_error: "Current password must be a plain string.",
+        })
+        .min(1, "Current password is required."),
+      newPassword: passwordComplexity,
+      confirmPassword: z.string().min(1, "Password confirmation is required."),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: "New password and confirmation do not match.",
+      path: ["confirmPassword"],
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+      message: "New password must be different from the current password.",
+      path: ["newPassword"],
+    }),
 };
 
 export const validateRequest = (schema) => {

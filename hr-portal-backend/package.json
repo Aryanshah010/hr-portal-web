@@ -24,6 +24,7 @@
     "express-rate-limit": "^8.5.2",
     "express-session": "^1.19.0",
     "helmet": "^8.2.0",
+    "ip-range-check": "^0.2.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.3",
     "multer": "^2.2.0",

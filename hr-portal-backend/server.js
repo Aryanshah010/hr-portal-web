@@ -11,9 +11,32 @@ import { configureCors } from "./middleware/corsPolicy.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
 
+import {
+  cleanNoSqlInjection,
+  injectionThreatBus,
+} from "./middleware/nosqlSanitizer.js";
+
+import AuditLog, { AUDIT_EVENTS, AUDIT_SEVERITY } from "./models/AuditLog.js";
+
 const app = express();
 
 await connectDatabase();
+
+injectionThreatBus.on("nosql:threat", ({ req, metadata }) => {
+  AuditLog.record({
+    eventType: AUDIT_EVENTS.NOSQL_INJECTION_ATTEMPT,
+    severity: AUDIT_SEVERITY.CRITICAL,
+    req,
+    actorId: req.user?.id ?? null,
+    actorRole: req.user?.role ?? "Unauthenticated",
+    metadata,
+  }).catch((err) => {
+    console.error(
+      "[SERVER] AuditLog write failed for injection event:",
+      err.message,
+    );
+  });
+});
 
 app.use(configureSecurityHeaders());
 app.use(enforceSupplementalHeaders);
@@ -22,6 +45,7 @@ app.use(globalLimiter);
 
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(cleanNoSqlInjection);
 
 app.get("/health", (req, res) => {
