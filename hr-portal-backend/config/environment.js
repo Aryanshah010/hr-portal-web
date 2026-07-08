@@ -10,6 +10,12 @@ const requiredEnvVars = [
   "DATABASE_ENCRYPTION_KEY",
   "JWT_SECRET",
   "PAYROLL_ENCRYPTION_KEY",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GOOGLE_CALLBACK_URL",
+  "OAUTH_STATE_SECRET",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
 ];
 
 for (const varName of requiredEnvVars) {
@@ -45,4 +51,22 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   dbEncryptionKey: Buffer.from(aesDbKey, "hex"),
   payrollEncryptionKey: Buffer.from(aesPayrollKey, "hex"),
+
+  // Google OAuth 2.0 Configuration
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL,
+  oauthStateSecret: process.env.OAUTH_STATE_SECRET,
+
+  // Stripe Payment Integration
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+
+  // Cloudflare Edge Gate Configuration
+  cloudflareEnabled: process.env.CLOUDFLARE_ENABLED === "true",
+  cfThreatScoreThreshold: parseInt(process.env.CF_THREAT_SCORE_THRESHOLD, 10) || 50,
+
+  // RSA Key Management for Digital Signatures
+  rsaPrivateKeyPath: process.env.RSA_PRIVATE_KEY_PATH || "./private.pem",
+  rsaPublicKeyId: process.env.RSA_PUBLIC_KEY_ID || "key-2026-v1",
 };

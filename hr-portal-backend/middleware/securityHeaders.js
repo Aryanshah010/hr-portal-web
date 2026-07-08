@@ -5,10 +5,11 @@ export const configureSecurityHeaders = () => {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://js.stripe.com"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", "https://api.stripe.com"],
+        frameSrc: ["'self'", "https://js.stripe.com"],
         upgradeInsecureRequests: [],
       },
     },

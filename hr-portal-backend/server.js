@@ -18,6 +18,10 @@ import {
 
 import AuditLog, { AUDIT_EVENTS, AUDIT_SEVERITY } from "./models/AuditLog.js";
 
+import { enforceCloudflareGateway } from "./middleware/cloudflareGateway.js";
+import authRoutes from "./routes/authRoutes.js";
+import transactionRoutes from "./routes/transactionRoutes.js";
+
 const app = express();
 
 await connectDatabase();
@@ -38,15 +42,20 @@ injectionThreatBus.on("nosql:threat", ({ req, metadata }) => {
   });
 });
 
+app.use(enforceCloudflareGateway);
 app.use(configureSecurityHeaders());
 app.use(enforceSupplementalHeaders);
 app.use(configureCors());
 app.use(globalLimiter);
 
+app.use("/api/transactions/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 app.use(cookieParser());
 
 app.use(cleanNoSqlInjection);
+app.use("/api/auth", authRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 app.get("/health", (req, res) => {
   res

@@ -1,4 +1,5 @@
 import { generateToken } from "./generateToken.js";
+import { env } from "../config/environment.js";
 
 export const sendTokenCookie = (user, statusCode, res) => {
   const token = generateToken(user);

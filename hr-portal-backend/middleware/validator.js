@@ -177,6 +177,23 @@ export const schemas = {
       message: "New password must be different from the current password.",
       path: ["newPassword"],
     }),
+
+  disburseSalary: z.object({
+    employeeId: z
+      .string({ invalid_type_error: "Employee ID must be a plain string." })
+      .regex(/^[0-9a-fA-F]{24}$/, "Invalid Employee ID format."),
+    baseSalary: z
+      .number({
+        invalid_type_error: "Base salary must be a number.",
+        required_error: "Base salary is required.",
+      })
+      .positive("Base salary must be a positive number.")
+      .min(17300, "Base salary must meet the Nepal statutory minimum of NPR 17,300."),
+    idempotencyKey: z
+      .string({ invalid_type_error: "Idempotency key must be a plain string." })
+      .uuid("Idempotency key must be a valid UUID v4.")
+      .optional(),
+  }),
 };
 
 export const validateRequest = (schema) => {
