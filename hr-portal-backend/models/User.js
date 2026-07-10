@@ -31,8 +31,29 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: [true, "Password hash is required."],
+      required: [
+        function () {
+          return this.oauthProvider === "local";
+        },
+        "Password hash is required for local authentication.",
+      ],
       minlength: [60, "Password hash is malformed — expected bcrypt output."],
+      select: false,
+    },
+
+    oauthProvider: {
+      type: String,
+      enum: {
+        values: ["local", "google"],
+        message: "OAuth provider '{VALUE}' is not supported.",
+      },
+      default: "local",
+      required: true,
+    },
+
+    oauthId: {
+      type: String,
+      default: null,
       select: false,
     },
 
@@ -110,7 +131,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ email: 1 });
 userSchema.index({ lockedUntil: 1 }, { sparse: true });
 userSchema.pre("save", function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || this.oauthProvider !== "local") return next();
   if (this.password.length < 60) {
     return next(
       new Error(

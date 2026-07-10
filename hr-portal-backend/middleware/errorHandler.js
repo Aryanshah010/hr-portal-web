@@ -12,8 +12,29 @@ export const globalErrorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+    });
+  }
+
+  if (err.name === "ValidationError") {
+    return res.status(400).json({
+      status: "fail",
+      message: "The submitted data does not meet record requirements.",
+    });
+  }
+
+  if (err.code === 11000) {
+    return res.status(409).json({
+      status: "fail",
+      message: "A record with these unique values already exists.",
+    });
+  }
+
   res.status(500).json({
-    error: "Internal Server Error",
+    status: "error",
     message:
       "An internal system anomaly occurred. Please reference infrastructure administration logs.",
   });

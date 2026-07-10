@@ -177,11 +177,92 @@ export const schemas = {
       message: "New password must be different from the current password.",
       path: ["newPassword"],
     }),
+
+  disburseSalary: z.object({
+    employeeId: z
+      .string({ invalid_type_error: "Employee ID must be a plain string." })
+      .regex(/^[0-9a-fA-F]{24}$/, "Invalid Employee ID format."),
+    baseSalary: z
+      .number({
+        invalid_type_error: "Base salary must be a number.",
+        required_error: "Base salary is required.",
+      })
+      .positive("Base salary must be a positive number.")
+      .min(
+        17300,
+        "Base salary must meet the Nepal statutory minimum of NPR 17,300.",
+      ),
+    idempotencyKey: z
+      .string({ invalid_type_error: "Idempotency key must be a plain string." })
+      .uuid("Idempotency key must be a valid UUID v4.")
+      .optional(),
+  }),
+
+  submitAttendance: z
+    .object({
+      recordType: z.enum(["ATTENDANCE", "LEAVE"]),
+      attendanceDate: z
+        .string({
+          invalid_type_error: "Attendance date must be an ISO date string.",
+        })
+        .regex(
+          /^\d{4}-\d{2}-\d{2}$/,
+          "Attendance date must use YYYY-MM-DD format.",
+        ),
+      checkInAt: z.string().datetime({ offset: true }).optional(),
+      checkOutAt: z.string().datetime({ offset: true }).optional(),
+      leaveType: z.enum(["ANNUAL", "SICK", "UNPAID", "OTHER"]).optional(),
+      reason: safeString(2, 1000).optional(),
+    })
+    .strict()
+    .superRefine((data, ctx) => {
+      if (data.recordType === "ATTENDANCE" && !data.checkInAt) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["checkInAt"],
+          message: "Check-in time is required for attendance.",
+        });
+      }
+      if (data.recordType === "LEAVE" && !data.leaveType) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["leaveType"],
+          message: "Leave type is required for leave requests.",
+        });
+      }
+      if (
+        data.checkInAt &&
+        data.checkOutAt &&
+        new Date(data.checkOutAt) <= new Date(data.checkInAt)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["checkOutAt"],
+          message: "Check-out time must be after check-in time.",
+        });
+      }
+    }),
+
+  decideAttendance: z
+    .object({
+      decision: z.enum(["APPROVED", "REJECTED"]),
+      comment: safeString(1, 1000).optional(),
+    })
+    .strict(),
+
+  attendanceListQuery: z
+    .object({
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+      status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+      recordType: z.enum(["ATTENDANCE", "LEAVE"]).optional(),
+    })
+    .strict(),
 };
 
-export const validateRequest = (schema) => {
+export const validateRequest = (schema, source = "body") => {
   return (req, res, next) => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req[source]);
 
     if (!result.success) {
       const errors = result.error.issues.map((issue) => ({
@@ -197,7 +278,11 @@ export const validateRequest = (schema) => {
       });
     }
 
-    req.body = result.data;
+    if (source === "body") {
+      req.body = result.data;
+    } else {
+      req.validated = { ...(req.validated || {}), [source]: result.data };
+    }
 
     next();
   };
