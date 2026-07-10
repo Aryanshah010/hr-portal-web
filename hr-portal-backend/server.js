@@ -21,6 +21,7 @@ import AuditLog, { AUDIT_EVENTS, AUDIT_SEVERITY } from "./models/AuditLog.js";
 import { enforceCloudflareGateway } from "./middleware/cloudflareGateway.js";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use(cookieParser());
 app.use(cleanNoSqlInjection);
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.get("/health", (req, res) => {
   res

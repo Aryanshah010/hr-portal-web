@@ -23,3 +23,15 @@ export const authLimiter = rateLimit({
       "Too many authentication failures detected from this source. Access locked for 15 minutes to prevent brute-force profiling.",
   },
 });
+
+export const attendanceMutationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Attendance Request Limit Reached",
+    message:
+      "Too many attendance changes were requested. Please try again later.",
+  },
+});
