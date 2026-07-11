@@ -6,6 +6,7 @@ import { env } from "../config/environment.js";
 import Transaction from "../models/Transaction.js";
 import Employee from "../models/Employee.js";
 import AppError from "../utils/appError.js";
+import { reconcilePayrollTransaction } from "./payrollReconciliationService.js";
 
 const stripe = new Stripe(env.stripeSecretKey, {
   maxNetworkRetries: 3,
@@ -58,6 +59,8 @@ export const initiateSalaryDisbursement = async ({
   amount,
   adminId,
   idempotencyKey = crypto.randomUUID(),
+  payrollRunId = null,
+  payslipId = null,
 }) => {
   const employee = await Employee.findById(employeeId);
   if (!employee) {
@@ -76,6 +79,8 @@ export const initiateSalaryDisbursement = async ({
   try {
     transaction = await Transaction.create({
       employeeId,
+      payrollRunId,
+      payslipId,
       authorizedBy: adminId,
       type: "SALARY_DISBURSEMENT",
       status: "PENDING",
@@ -128,6 +133,7 @@ export const initiateSalaryDisbursement = async ({
     transaction.errorDetails =
       stripeError.message || "External payment gateway call failed.";
     await transaction.save();
+    await reconcilePayrollTransaction(transaction);
 
     throw new AppError(
       `Transaction failed at payment provider: ${stripeError.message}`,
@@ -151,6 +157,7 @@ export const processSuccessfulPayment = async (paymentIntentId) => {
     transaction.status = "COMPLETED";
     transaction.completedAt = new Date();
     await transaction.save();
+    await reconcilePayrollTransaction(transaction);
     console.log(
       `[LEDGER SUCCESS] Transaction ${transaction._id} promoted to COMPLETED state.`,
     );
@@ -169,6 +176,7 @@ export const processFailedPayment = async (paymentIntentId, errorMessage) => {
     transaction.status = "FAILED";
     transaction.errorDetails = errorMessage || "Stripe transaction failed.";
     await transaction.save();
+    await reconcilePayrollTransaction(transaction);
     console.warn(
       `[LEDGER FAILURE] Transaction ${transaction._id} marked as FAILED via webhook callback.`,
     );

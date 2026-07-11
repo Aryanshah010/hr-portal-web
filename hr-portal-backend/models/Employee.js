@@ -73,6 +73,26 @@ const employeeSchema = new mongoose.Schema(
       },
       select: false,
     },
+    bankAccountEncrypted: {
+      type: String,
+      default: null,
+      select: false,
+      validate: {
+        validator: (v) =>
+          v === null || (typeof v === "string" && v.split(":").length === 3),
+        message: "Bank account data must be encrypted.",
+      },
+    },
+    taxInfoEncrypted: {
+      type: String,
+      default: null,
+      select: false,
+      validate: {
+        validator: (v) =>
+          v === null || (typeof v === "string" && v.split(":").length === 3),
+        message: "Tax information must be encrypted.",
+      },
+    },
 
     role: {
       type: String,

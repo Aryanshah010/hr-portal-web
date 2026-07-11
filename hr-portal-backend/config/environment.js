@@ -16,6 +16,11 @@ const requiredEnvVars = [
   "OAUTH_STATE_SECRET",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
+  "PAYROLL_APPROVAL_THRESHOLD",
+  "PAYROLL_BATCH_SIZE",
+  "PAYROLL_TAX_RATE",
+  "PAYROLL_DEDUCTION_RATE",
+  "BANK_API_PROVIDER",
 ];
 
 for (const varName of requiredEnvVars) {
@@ -43,6 +48,40 @@ if (aesPayrollKey.length !== 64) {
   process.exit(1);
 }
 
+const payrollTaxRate = Number(process.env.PAYROLL_TAX_RATE);
+const payrollDeductionRate = Number(process.env.PAYROLL_DEDUCTION_RATE);
+const payrollBatchSize = Number.parseInt(process.env.PAYROLL_BATCH_SIZE, 10);
+const payrollApprovalThreshold = Number(process.env.PAYROLL_APPROVAL_THRESHOLD);
+if (
+  ![payrollTaxRate, payrollDeductionRate].every(
+    (rate) => Number.isFinite(rate) && rate >= 0 && rate <= 1,
+  ) ||
+  payrollTaxRate + payrollDeductionRate > 1
+) {
+  console.error(
+    "[FATAL ERROR] PAYROLL_TAX_RATE and PAYROLL_DEDUCTION_RATE must be decimal rates between 0 and 1 whose sum does not exceed 1.",
+  );
+  process.exit(1);
+}
+if (
+  !Number.isInteger(payrollBatchSize) ||
+  payrollBatchSize < 1 ||
+  payrollBatchSize > 1000 ||
+  !Number.isFinite(payrollApprovalThreshold) ||
+  payrollApprovalThreshold < 0
+) {
+  console.error(
+    "[FATAL ERROR] Payroll batch size or approval threshold is invalid.",
+  );
+  process.exit(1);
+}
+if (process.env.BANK_API_PROVIDER !== "stripe") {
+  console.error(
+    '[FATAL ERROR] BANK_API_PROVIDER must be "stripe" for the supported payroll provider.',
+  );
+  process.exit(1);
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV,
   port: parseInt(process.env.PORT, 10) || 5000,
@@ -51,6 +90,11 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   dbEncryptionKey: Buffer.from(aesDbKey, "hex"),
   payrollEncryptionKey: Buffer.from(aesPayrollKey, "hex"),
+  payrollApprovalThreshold,
+  payrollBatchSize,
+  payrollTaxRate,
+  payrollDeductionRate,
+  bankApiProvider: process.env.BANK_API_PROVIDER,
 
   // Google OAuth 2.0 Configuration
   googleClientId: process.env.GOOGLE_CLIENT_ID,
@@ -64,7 +108,8 @@ export const env = {
 
   // Cloudflare Edge Gate Configuration
   cloudflareEnabled: process.env.CLOUDFLARE_ENABLED === "true",
-  cfThreatScoreThreshold: parseInt(process.env.CF_THREAT_SCORE_THRESHOLD, 10) || 50,
+  cfThreatScoreThreshold:
+    parseInt(process.env.CF_THREAT_SCORE_THRESHOLD, 10) || 50,
 
   // RSA Key Management for Digital Signatures
   rsaPrivateKeyPath: process.env.RSA_PRIVATE_KEY_PATH || "./private.pem",

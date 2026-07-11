@@ -35,3 +35,25 @@ export const attendanceMutationLimiter = rateLimit({
       "Too many attendance changes were requested. Please try again later.",
   },
 });
+
+export const payrollExecutionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Payroll Execution Limit Reached",
+    message: "Too many payroll execution requests. Please try again later.",
+  },
+});
+
+export const payslipReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Payslip Access Limit Reached",
+    message: "Too many payslip access requests. Please try again later.",
+  },
+});

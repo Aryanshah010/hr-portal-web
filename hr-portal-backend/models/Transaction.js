@@ -7,6 +7,16 @@ const transactionSchema = new mongoose.Schema(
       ref: "Employee",
       required: [true, "Employee reference is required."],
     },
+    payrollRunId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PayrollRun",
+      default: null,
+    },
+    payslipId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payslip",
+      default: null,
+    },
     authorizedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -82,6 +92,7 @@ transactionSchema.index({ employeeId: 1, createdAt: -1 });
 transactionSchema.index({ authorizedBy: 1, createdAt: -1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
+transactionSchema.index({ payrollRunId: 1, status: 1 }, { sparse: true });
 transactionSchema.index({ idempotencyKey: 1 }, { unique: true });
 
 transactionSchema.pre("save", function (next) {

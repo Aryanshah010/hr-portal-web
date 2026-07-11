@@ -258,6 +258,34 @@ export const schemas = {
       recordType: z.enum(["ATTENDANCE", "LEAVE"]).optional(),
     })
     .strict(),
+
+  payrollRunCreate: z
+    .object({
+      period: z
+        .string({ invalid_type_error: "Period must be a string." })
+        .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Period must use YYYY-MM format."),
+      dryRun: z.boolean().default(false),
+    })
+    .strict(),
+
+  payrollListQuery: z
+    .object({
+      page: z.coerce.number().int().min(1).default(1),
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+      status: z
+        .enum([
+          "DRAFT",
+          "PENDING_APPROVAL",
+          "APPROVED",
+          "PROCESSING",
+          "COMPLETED",
+          "FAILED",
+        ])
+        .optional(),
+    })
+    .strict(),
+
+  emptyBody: z.object({}).strict(),
 };
 
 export const validateRequest = (schema, source = "body") => {
