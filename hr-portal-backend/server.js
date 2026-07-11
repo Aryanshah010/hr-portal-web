@@ -22,6 +22,7 @@ import { enforceCloudflareGateway } from "./middleware/cloudflareGateway.js";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import payrollRoutes from "./routes/payrollRoutes.js";
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use(cleanNoSqlInjection);
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/payroll", payrollRoutes);
 
 app.get("/health", (req, res) => {
   res
