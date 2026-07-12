@@ -13,53 +13,51 @@ import {
   getRun,
   listRuns,
   submitRun,
-  updateSalary,
 } from "../controllers/payrollController.js";
+import { csrfProtection } from "../middleware/csrf.js";
 
 const router = express.Router();
 router.use(protect);
 router.post(
   "/runs",
-  restrictTo("Manager", "Admin"),
+  restrictTo("HR"),
+  csrfProtection,
   validateRequest(schemas.payrollRunCreate),
   createRun,
 );
 router.get(
   "/runs",
-  restrictTo("Manager", "Admin"),
+  restrictTo("HR"),
   validateRequest(schemas.payrollListQuery, "query"),
   listRuns,
 );
-router.get("/runs/:id", restrictTo("Manager", "Admin"), getRun);
+router.get("/runs/:id", restrictTo("HR"), getRun);
 router.post(
   "/runs/:id/submit",
-  restrictTo("Manager", "Admin"),
+  restrictTo("HR"),
+  csrfProtection,
   validateRequest(schemas.emptyBody),
   submitRun,
 );
 router.post(
   "/runs/:id/approve",
-  restrictTo("Admin"),
+  restrictTo("HR"),
+  csrfProtection,
   validateRequest(schemas.emptyBody),
   approveRun,
 );
 router.post(
   "/runs/:id/execute",
-  restrictTo("Admin"),
+  restrictTo("HR"),
+  csrfProtection,
   payrollExecutionLimiter,
   validateRequest(schemas.emptyBody),
   executeRun,
 );
 router.get(
   "/runs/:runId/payslips/:employeeId",
-  restrictTo("Employee", "Manager", "Admin"),
+  restrictTo("Employee", "HR"),
   payslipReadLimiter,
   getPayslip,
-);
-router.patch(
-  "/employees/:employeeId/salary",
-  restrictTo("Admin"),
-  validateRequest(schemas.updateSalary),
-  updateSalary,
 );
 export default router;

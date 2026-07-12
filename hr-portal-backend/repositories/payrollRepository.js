@@ -49,3 +49,9 @@ export const updatePayslipPayout = (payslipId, payoutStatus) =>
     { $set: { payoutStatus } },
     { new: true },
   );
+export const finishProcessingRun = (id, status, failureReason = null) =>
+  PayrollRun.findOneAndUpdate(
+    { _id: id, status: "PROCESSING" },
+    { $set: { status, completedAt: new Date(), failureReason } },
+    { new: true },
+  );

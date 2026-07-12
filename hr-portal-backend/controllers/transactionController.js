@@ -7,16 +7,15 @@ import {
 import { env } from "../config/environment.js";
 import AppError from "../utils/appError.js";
 
-
 export const createPaymentIntent = async (req, res, next) => {
   try {
     const { employeeId, baseSalary, idempotencyKey } = req.body;
-    const adminId = req.user.id; 
+    const hrId = req.user.id;
 
     const result = await initiateSalaryDisbursement({
       employeeId,
       amount: baseSalary,
-      adminId,
+      hrId,
       idempotencyKey,
     });
 
@@ -41,8 +40,13 @@ export const handleWebhook = async (req, res, next) => {
   try {
     event = verifyWebhookSignature(req.body, sig, env.stripeWebhookSecret);
   } catch (err) {
-    console.error(`[WEBHOOK SIGNATURE ERROR] Webhook signature verification failed:`, err.message);
-    return res.status(400).send(`Webhook Signature Verification Error: ${err.message}`);
+    console.error(
+      `[WEBHOOK SIGNATURE ERROR] Webhook signature verification failed:`,
+      err.message,
+    );
+    return res
+      .status(400)
+      .send(`Webhook Signature Verification Error: ${err.message}`);
   }
 
   const paymentIntent = event.data.object;
@@ -52,11 +56,15 @@ export const handleWebhook = async (req, res, next) => {
       await processSuccessfulPayment(paymentIntent.id);
       break;
     case "payment_intent.payment_failed":
-      const errorMsg = paymentIntent.last_payment_error?.message || "Stripe transaction failed.";
+      const errorMsg =
+        paymentIntent.last_payment_error?.message ||
+        "Stripe transaction failed.";
       await processFailedPayment(paymentIntent.id, errorMsg);
       break;
     default:
-      console.log(`[WEBHOOK INFO] Unhandled Stripe webhook event type: ${event.type}`);
+      console.log(
+        `[WEBHOOK INFO] Unhandled Stripe webhook event type: ${event.type}`,
+      );
   }
 
   res.status(200).json({ received: true });

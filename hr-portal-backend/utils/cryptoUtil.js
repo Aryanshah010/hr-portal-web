@@ -3,56 +3,38 @@ import { env } from "../config/environment.js";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
-const TAG_LENGTH = 16;
-const ENCODING = "hex";
+const encode = (value) => Buffer.from(value).toString("hex");
+const decode = (value) => Buffer.from(value, "hex");
 
-const encryptWithKey = (text, key) => {
-  if (!text) return text;
-
+const encryptValue = (value, key) => {
+  if (value === null || value === undefined) return value;
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-
-  let encrypted = cipher.update(text, "utf8", ENCODING);
-  encrypted += cipher.final(ENCODING);
-
-  const authTag = cipher.getAuthTag().toString(ENCODING);
-
-  return `${iv.toString(ENCODING)}:${authTag}:${encrypted}`;
+  const encrypted = Buffer.concat([
+    cipher.update(Buffer.isBuffer(value) ? value : Buffer.from(String(value))),
+    cipher.final(),
+  ]);
+  return `${encode(iv)}:${encode(cipher.getAuthTag())}:${encode(encrypted)}`;
+};
+const decryptValue = (payload, key) => {
+  if (payload === null || payload === undefined) return payload;
+  const [iv, tag, encrypted] = String(payload).split(":");
+  if (!iv || !tag || !encrypted) throw new Error("Malformed encrypted value.");
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, decode(iv));
+  decipher.setAuthTag(decode(tag));
+  return Buffer.concat([decipher.update(decode(encrypted)), decipher.final()]);
 };
 
-const decryptWithKey = (ciphertext, key) => {
-  if (!ciphertext) return ciphertext;
-
-  try {
-    const [ivHex, authTagHex, encryptedHex] = ciphertext.split(":");
-
-    if (!ivHex || !authTagHex || !encryptedHex) {
-      throw new Error("Malformed cipher payload layout mapping.");
-    }
-
-    const iv = Buffer.from(ivHex, ENCODING);
-    const authTag = Buffer.from(authTagHex, ENCODING);
-    const encryptedText = Buffer.from(encryptedHex, ENCODING);
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encryptedText, ENCODING, "utf8");
-    decrypted += decipher.final("utf8");
-
-    return decrypted;
-  } catch (error) {
-    throw new Error(
-      "Decryption failure: Data integrity verification failed or key is mismatched.",
-    );
-  }
-};
-
-export const encrypt = (text) => encryptWithKey(text, env.dbEncryptionKey);
-export const decrypt = (ciphertext) =>
-  decryptWithKey(ciphertext, env.dbEncryptionKey);
+export const encrypt = (text) => encryptValue(text, env.dbEncryptionKey);
+export const decrypt = (payload) =>
+  decryptValue(payload, env.dbEncryptionKey).toString("utf8");
+export const encryptBuffer = (buffer) =>
+  encryptValue(buffer, env.dbEncryptionKey);
+export const decryptBuffer = (payload) =>
+  decryptValue(payload, env.dbEncryptionKey);
 export const encryptPayroll = (text) =>
-  encryptWithKey(text, env.payrollEncryptionKey);
-export const decryptPayroll = (ciphertext) =>
-  decryptWithKey(ciphertext, env.payrollEncryptionKey);
+  encryptValue(text, env.payrollEncryptionKey);
+export const decryptPayroll = (payload) =>
+  decryptValue(payload, env.payrollEncryptionKey).toString("utf8");
+export const hashSecret = (value) =>
+  crypto.createHash("sha256").update(String(value)).digest("hex");

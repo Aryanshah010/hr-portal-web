@@ -89,7 +89,7 @@ const auditLogSchema = new mongoose.Schema(
     actorRole: {
       type: String,
       enum: {
-        values: ["Employee", "Manager", "Admin", "Unauthenticated"],
+        values: ["Employee", "HR", "Unauthenticated"],
         message: "Actor role '{VALUE}' is not valid.",
       },
       default: "Unauthenticated",

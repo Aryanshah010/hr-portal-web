@@ -18,9 +18,8 @@ export const configureCors = () => {
         );
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
-    exposedHeaders: ["X-CSRF-Token"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "X-CSRF-Token"],
     credentials: true,
     optionsSuccessStatus: 204,
   };

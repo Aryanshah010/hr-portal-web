@@ -2,6 +2,7 @@ import express from "express";
 import { protect, restrictTo } from "../middleware/authGuard.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
 import { attendanceMutationLimiter } from "../middleware/rateLimiter.js";
+import { csrfProtection } from "../middleware/csrf.js";
 import {
   submitAttendance,
   getMyAttendance,
@@ -15,26 +16,28 @@ router.use(protect);
 router.post(
   "/",
   attendanceMutationLimiter,
-  restrictTo("Employee", "Manager", "Admin"),
+  restrictTo("Employee"),
+  csrfProtection,
   validateRequest(schemas.submitAttendance),
   submitAttendance,
 );
 router.get(
   "/mine",
-  restrictTo("Employee", "Manager", "Admin"),
+  restrictTo("Employee"),
   validateRequest(schemas.attendanceListQuery, "query"),
   getMyAttendance,
 );
 router.get(
   "/approvals",
-  restrictTo("Manager", "Admin"),
+  restrictTo("HR"),
   validateRequest(schemas.attendanceListQuery, "query"),
   getApprovalQueue,
 );
 router.patch(
   "/:id/decision",
   attendanceMutationLimiter,
-  restrictTo("Manager", "Admin"),
+  restrictTo("HR"),
+  csrfProtection,
   validateRequest(schemas.decideAttendance),
   decideAttendance,
 );

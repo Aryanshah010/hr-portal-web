@@ -1,120 +1,61 @@
-import { google } from "googleapis";
 import crypto from "crypto";
-import { env } from "../config/environment.js";
-import User from "../models/User.js";
+import { google } from "googleapis";
 import AppError from "../utils/appError.js";
+import { env } from "../config/environment.js";
 
-const getOAuth2Client = () => {
-  return new google.auth.OAuth2(
+const client = () =>
+  new google.auth.OAuth2(
     env.googleClientId,
     env.googleClientSecret,
-    env.googleCallbackUrl
+    env.googleCallbackUrl,
   );
+const signature = (value) =>
+  crypto.createHmac("sha256", env.oauthStateSecret).update(value).digest("hex");
+export const createState = () => {
+  const value = crypto.randomBytes(32).toString("hex");
+  return { value, signed: `${value}.${signature(value)}` };
 };
-
-export const generateOAuthState = () => {
-  return crypto.randomBytes(32).toString("hex");
+export const validState = (signed) => {
+  const [value, provided] = String(signed || "").split(".");
+  const expected = signature(value);
+  const a = Buffer.from(provided || "");
+  const b = Buffer.from(expected);
+  return Boolean(value) && a.length === b.length && crypto.timingSafeEqual(a, b)
+    ? value
+    : null;
 };
-
-export const signState = (state) => {
-  return crypto
-    .createHmac("sha256", env.oauthStateSecret)
-    .update(state)
-    .digest("hex");
-};
-
-export const verifyStateSignature = (state, signature) => {
-  const expectedSignature = signState(state);
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, "hex"),
-      Buffer.from(expectedSignature, "hex")
-    );
-  } catch (e) {
-    return false;
-  }
-};
-
-export const getAuthorizationUrl = (state) => {
-  const oauth2Client = getOAuth2Client();
-  const stateSignature = signState(state);
-
-  const combinedState = `${state}:${stateSignature}`;
-
-  return oauth2Client.generateAuthUrl({
+export const authorizationUrl = (state) =>
+  client().generateAuthUrl({
     access_type: "offline",
-    scope: [
-      "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/userinfo.email",
-      "openid",
-    ],
-    state: combinedState,
+    scope: ["openid", "email", "profile"],
+    state,
     prompt: "select_account",
   });
-};
-
-export const handleGoogleCallback = async (code) => {
-  const oauth2Client = getOAuth2Client();
-
+export const readGoogleIdentity = async (code) => {
   let tokens;
   try {
-    const response = await oauth2Client.getToken({
-      code,
-      options: {
-        minVersion: "TLSv1.3",
-      }
-    });
-    tokens = response.tokens;
-  } catch (error) {
-    throw new AppError("Failed to retrieve access tokens from OAuth provider.", 400);
+    tokens = (await client().getToken(code)).tokens;
+  } catch {
+    throw new AppError("Google sign-in could not be completed.", 401);
   }
-
-  const idToken = tokens.id_token;
-  if (!idToken) {
-    throw new AppError("Missing ID Token from authentication callback response.", 400);
-  }
-
-  let ticket;
+  if (!tokens.id_token)
+    throw new AppError("Google sign-in returned no identity token.", 401);
+  let payload;
   try {
-    ticket = await oauth2Client.verifyIdToken({
-      idToken,
-      audience: env.googleClientId,
-    });
-  } catch (error) {
-    throw new AppError("ID Token cryptographic signature verification failed.", 401);
+    payload = (
+      await client().verifyIdToken({
+        idToken: tokens.id_token,
+        audience: env.googleClientId,
+      })
+    ).getPayload();
+  } catch {
+    throw new AppError("Google identity token could not be verified.", 401);
   }
-
-  const payload = ticket.getPayload();
-  if (!payload || !payload.email_verified) {
-    throw new AppError("Identity verification failed. Verified email is required.", 401);
-  }
-
-  const { sub: googleId, email, name } = payload;
-
-  let user = await User.findOne({ email }).select("+oauthId");
-
-  if (!user) {
-    user = await User.create({
-      email,
-      oauthProvider: "google",
-      oauthId: googleId,
-      role: "Employee", 
-      isActive: true,
-      totpVerified: false,
-    });
-  } else {
-    if (user.oauthProvider === "local") {
-      user.oauthProvider = "google";
-      user.oauthId = googleId;
-      await user.save();
-    } else if (user.oauthId !== googleId) {
-      throw new AppError("OAuth account identity mismatch. Access Denied.", 403);
-    }
-  }
-
-  if (!user.isActive) {
-    throw new AppError("This user account is currently deactivated.", 403);
-  }
-
-  return user;
+  if (!payload?.email_verified || !payload.email || !payload.sub)
+    throw new AppError("A verified Google email address is required.", 401);
+  return {
+    googleId: payload.sub,
+    email: payload.email.toLowerCase(),
+    name: payload.name || null,
+  };
 };

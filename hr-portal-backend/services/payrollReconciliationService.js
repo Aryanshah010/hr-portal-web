@@ -1,36 +1,18 @@
-import Transaction from "../models/Transaction.js";
-import PayrollRun from "../models/PayrollRun.js";
-import * as payrollRepository from "../repositories/payrollRepository.js";
-
+import * as transactions from "../repositories/transactionRepository.js";
+import * as payroll from "../repositories/payrollRepository.js";
 export const reconcilePayrollTransaction = async (transaction) => {
-  if (!transaction.payrollRunId || !transaction.payslipId) return;
-  const payoutStatus =
-    transaction.status === "COMPLETED" ? "COMPLETED" : "FAILED";
-  await payrollRepository.updatePayslipPayout(
+  if (!transaction?.payrollRunId || !transaction.payslipId) return;
+  await payroll.updatePayslipPayout(
     transaction.payslipId,
-    payoutStatus,
+    transaction.status === "COMPLETED" ? "COMPLETED" : "FAILED",
   );
-  const transactions = await Transaction.find({
-    payrollRunId: transaction.payrollRunId,
-  }).select("status");
-  if (
-    !transactions.length ||
-    transactions.some(({ status }) => status === "PENDING")
-  )
-    return;
-  const status = transactions.every(({ status }) => status === "COMPLETED")
-    ? "COMPLETED"
-    : "FAILED";
-  await PayrollRun.findOneAndUpdate(
-    { _id: transaction.payrollRunId, status: "PROCESSING" },
-    {
-      $set: {
-        status,
-        completedAt: new Date(),
-        ...(status === "FAILED" && {
-          failureReason: "One or more payroll payments failed.",
-        }),
-      },
-    },
+  const rows = await transactions.forPayrollRun(transaction.payrollRunId);
+  if (!rows.length || rows.some((row) => row.status === "PENDING")) return;
+  await payroll.finishProcessingRun(
+    transaction.payrollRunId,
+    rows.every((row) => row.status === "COMPLETED") ? "COMPLETED" : "FAILED",
+    rows.every((row) => row.status === "COMPLETED")
+      ? null
+      : "One or more Stripe sandbox payments failed.",
   );
 };
