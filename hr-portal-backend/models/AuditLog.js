@@ -32,6 +32,9 @@ export const AUDIT_EVENTS = Object.freeze({
   EMPLOYEE_DELETED: "EMPLOYEE_DELETED",
   SALARY_UPDATED: "SALARY_UPDATED",
   PAYSLIP_GENERATED: "PAYSLIP_GENERATED",
+  PAYROLL_RUN_CREATED: "PAYROLL_RUN_CREATED",
+  PAYROLL_RUN_APPROVED: "PAYROLL_RUN_APPROVED",
+  SALARY_DISBURSEMENT_INITIATED: "SALARY_DISBURSEMENT_INITIATED",
   BANK_ACCOUNT_UPDATED: "BANK_ACCOUNT_UPDATED",
   ATTENDANCE_SUBMITTED: "ATTENDANCE_SUBMITTED",
   ATTENDANCE_APPROVED: "ATTENDANCE_APPROVED",
@@ -86,7 +89,7 @@ const auditLogSchema = new mongoose.Schema(
     actorRole: {
       type: String,
       enum: {
-        values: ["Employee", "Manager", "Admin", "Unauthenticated"],
+        values: ["Employee", "HR", "Unauthenticated"],
         message: "Actor role '{VALUE}' is not valid.",
       },
       default: "Unauthenticated",

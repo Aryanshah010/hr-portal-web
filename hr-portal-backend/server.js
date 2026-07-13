@@ -1,8 +1,9 @@
+import fs from "fs";
+import https from "https";
 import express from "express";
 import cookieParser from "cookie-parser";
 import { env } from "./config/environment.js";
 import { connectDatabase } from "./config/db.js";
-
 import {
   configureSecurityHeaders,
   enforceSupplementalHeaders,
@@ -10,69 +11,64 @@ import {
 import { configureCors } from "./middleware/corsPolicy.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
-
-import {
-  cleanNoSqlInjection,
-  injectionThreatBus,
-} from "./middleware/nosqlSanitizer.js";
-
-import AuditLog, { AUDIT_EVENTS, AUDIT_SEVERITY } from "./models/AuditLog.js";
-
+import { cleanNoSqlInjection } from "./middleware/nosqlSanitizer.js";
 import { enforceCloudflareGateway } from "./middleware/cloudflareGateway.js";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import payrollRoutes from "./routes/payrollRoutes.js";
+import employeeRoutes from "./routes/employeeRoutes.js";
+import documentRoutes from "./routes/documentRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
-
+app.disable("x-powered-by");
+app.set("trust proxy", env.cloudflareEnabled ? 1 : false);
 await connectDatabase();
-
-injectionThreatBus.on("nosql:threat", ({ req, metadata }) => {
-  AuditLog.record({
-    eventType: AUDIT_EVENTS.NOSQL_INJECTION_ATTEMPT,
-    severity: AUDIT_SEVERITY.CRITICAL,
-    req,
-    actorId: req.user?.id ?? null,
-    actorRole: req.user?.role ?? "Unauthenticated",
-    metadata,
-  }).catch((err) => {
-    console.error(
-      "[SERVER] AuditLog write failed for injection event:",
-      err.message,
-    );
-  });
-});
-
 app.use(enforceCloudflareGateway);
 app.use(configureSecurityHeaders());
 app.use(enforceSupplementalHeaders);
 app.use(configureCors());
 app.use(globalLimiter);
-
 app.use("/api/transactions/webhook", express.raw({ type: "application/json" }));
-
-app.use(express.json());
+app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
-
 app.use(cleanNoSqlInjection);
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/attendance", attendanceRoutes);
-
-app.get("/health", (req, res) => {
+app.use("/api/payroll", payrollRoutes);
+app.use("/api", employeeRoutes);
+app.use("/api/documents", documentRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.get("/health", (_req, res) =>
   res
     .status(200)
-    .json({ status: "healthy", timestamp: new Date().toISOString() });
-});
-
-app.get("/api/test-error", (req, res, next) => {
-  throw new Error("DATABASE CORRUPTION: CRITICAL FIELD LEAK ON OBJECT 0x7FFF");
-});
-
+    .json({ status: "healthy", timestamp: new Date().toISOString() }),
+);
 app.use(globalErrorHandler);
 
-app.listen(env.port, () => {
-  console.log(
-    `[SERVER] Perimeter active. Listening on secure port: ${env.port}`,
-  );
-});
+const start = () => {
+  if (env.httpsEnabled) {
+    const options = {
+      cert: fs.readFileSync(env.tlsCertPath),
+      key: fs.readFileSync(env.tlsKeyPath),
+      minVersion: "TLSv1.3",
+      maxVersion: "TLSv1.3",
+    };
+    https
+      .createServer(options, app)
+      .listen(env.port, () =>
+        console.log(`[SERVER] TLS 1.3 origin listening on ${env.port}`),
+      );
+  } else
+    app.listen(env.port, () =>
+      console.log(
+        `[SERVER] Development HTTP listening on ${env.port}; enable HTTPS_ENABLED for TLS testing.`,
+      ),
+    );
+};
+start();
+export default app;

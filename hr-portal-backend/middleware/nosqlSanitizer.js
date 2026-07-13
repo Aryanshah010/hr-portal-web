@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
-import AuditLog, { AUDIT_EVENTS, AUDIT_SEVERITY } from "../models/AuditLog.js";
+import { AUDIT_EVENTS, AUDIT_SEVERITY } from "../models/AuditLog.js";
+import * as audit from "../repositories/auditRepository.js";
 
 export const injectionThreatBus = new EventEmitter();
 
@@ -146,16 +147,18 @@ function buildThreatMetadata(req, detectionResult) {
 function reportThreat(req, metadata) {
   injectionThreatBus.emit("nosql:threat", { req, metadata });
 
-  AuditLog.record({
-    eventType: AUDIT_EVENTS.NOSQL_INJECTION_ATTEMPT,
-    severity: AUDIT_SEVERITY.CRITICAL,
-    req,
-    actorId: req.user?.id ?? null,
-    actorRole: req.user?.role ?? "Unauthenticated",
-    metadata,
-  }).catch((err) => {
-    console.error("[NoSQL Sanitizer] Audit write failed:", err.message);
-  });
+  audit
+    .record({
+      eventType: AUDIT_EVENTS.NOSQL_INJECTION_ATTEMPT,
+      severity: AUDIT_SEVERITY.CRITICAL,
+      req,
+      actorId: req.user?.id ?? null,
+      actorRole: req.user?.role ?? "Unauthenticated",
+      metadata,
+    })
+    .catch((err) => {
+      console.error("[NoSQL Sanitizer] Audit write failed:", err.message);
+    });
 
   console.warn(
     `[SECURITY ALERT] NoSQL injection attempt detected | ` +

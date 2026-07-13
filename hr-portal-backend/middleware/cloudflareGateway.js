@@ -1,17 +1,8 @@
 import { env } from "../config/environment.js";
-import AuditLog, { AUDIT_EVENTS, AUDIT_SEVERITY } from "../models/AuditLog.js";
+import { AUDIT_EVENTS, AUDIT_SEVERITY } from "../models/AuditLog.js";
+import * as audit from "../repositories/auditRepository.js";
 
-/**
- * Express middleware to enforce Cloudflare Edge Security rules (Zero-Trust Gate).
- * 
- * When CLOUDFLARE_ENABLED is set to true in production:
- * - Rejects any request bypassing Cloudflare (checks CF-Ray header presence).
- * - Restores true client IP from CF-Connecting-IP and overrides req.ip to prevent spoofing.
- * - Inspects CF-Threat-Score (WAF reputation) and blocks requests exceeding the configured threshold.
- * - Inspects CF-Bot-Management score (bot score) and blocks automation.
- * - Inspects CF-IPCountry and blocks requests from restricted regions.
- * - Inspects CF-Visitor (scheme) to ensure HTTPS is used.
- */
+
 export const enforceCloudflareGateway = (req, res, next) => {
   if (!env.cloudflareEnabled) {
     req.clientIp = req.ip || "127.0.0.1";
@@ -20,33 +11,45 @@ export const enforceCloudflareGateway = (req, res, next) => {
 
   const cfRay = req.headers["cf-ray"];
   if (!cfRay) {
-    AuditLog.record({
+    audit.record({
       eventType: AUDIT_EVENTS.AUTHZ_ACCESS_DENIED,
       severity: AUDIT_SEVERITY.HIGH,
       req,
-      metadata: { reason: "Direct origin access attempt bypassing Cloudflare WAF." },
+      metadata: {
+        reason: "Direct origin access attempt bypassing Cloudflare WAF.",
+      },
     });
     return res.status(403).json({
       error: "Security Exception",
-      message: "Access Denied: Direct origin connection prohibited. Requests must route through secure perimeter gateways.",
+      message:
+        "Access Denied: Direct origin connection prohibited. Requests must route through secure perimeter gateways.",
     });
   }
 
   const cfClientIp = req.headers["cf-connecting-ip"];
   if (!cfClientIp) {
-    AuditLog.record({
+    audit.record({
       eventType: AUDIT_EVENTS.AUTHZ_ACCESS_DENIED,
       severity: AUDIT_SEVERITY.HIGH,
       req,
-      metadata: { reason: "Missing Cloudflare client IP identification header." },
+      metadata: {
+        reason: "Missing Cloudflare client IP identification header.",
+      },
     });
     return res.status(400).json({
       error: "Security Exception",
-      message: "Bad Request: Missing client identity headers from gateway route.",
+      message:
+        "Bad Request: Missing client identity headers from gateway route.",
     });
   }
 
   req.clientIp = cfClientIp.trim();
+
+  if (req.headers["x-forwarded-proto"] !== "https") {
+    return res
+      .status(400)
+      .json({ error: "Insecure Connection", message: "HTTPS is required." });
+  }
 
   const cfVisitorHeader = req.headers["cf-visitor"];
   if (cfVisitorHeader) {
@@ -55,7 +58,8 @@ export const enforceCloudflareGateway = (req, res, next) => {
       if (visitor.scheme !== "https") {
         return res.status(400).json({
           error: "Insecure Connection",
-          message: "SSL Required: Secure TLS communication channel is mandatory.",
+          message:
+            "SSL Required: Secure TLS communication channel is mandatory.",
         });
       }
     } catch (e) {
@@ -70,15 +74,18 @@ export const enforceCloudflareGateway = (req, res, next) => {
   if (threatScoreHeader) {
     const score = parseInt(threatScoreHeader, 10);
     if (!isNaN(score) && score > env.cfThreatScoreThreshold) {
-      AuditLog.record({
-        eventType: AUDIT_EVENTS.NOSQL_INJECTION_ATTEMPT, 
+      audit.record({
+        eventType: AUDIT_EVENTS.NOSQL_INJECTION_ATTEMPT,
         severity: AUDIT_SEVERITY.CRITICAL,
         req,
-        metadata: { reason: `Cloudflare Threat Score ${score} exceeded security limit ${env.cfThreatScoreThreshold}.` },
+        metadata: {
+          reason: `Cloudflare Threat Score ${score} exceeded security limit ${env.cfThreatScoreThreshold}.`,
+        },
       });
       return res.status(403).json({
         error: "Security Exception",
-        message: "Request blocked due to suspicious client security reputation profiles.",
+        message:
+          "Request blocked due to suspicious client security reputation profiles.",
       });
     }
   }
@@ -86,16 +93,19 @@ export const enforceCloudflareGateway = (req, res, next) => {
   const botScoreHeader = req.headers["cf-bot-management"];
   if (botScoreHeader) {
     const botScore = parseInt(botScoreHeader, 10);
-    if (!isNaN(botScore) && botScore < 10) { 
-      AuditLog.record({
+    if (!isNaN(botScore) && botScore < 10) {
+      audit.record({
         eventType: AUDIT_EVENTS.RATE_LIMIT_EXCEEDED,
         severity: AUDIT_SEVERITY.MEDIUM,
         req,
-        metadata: { reason: `Cloudflare Bot Score ${botScore} classified client as automated machine.` },
+        metadata: {
+          reason: `Cloudflare Bot Score ${botScore} classified client as automated machine.`,
+        },
       });
       return res.status(403).json({
         error: "Security Exception",
-        message: "Automated traffic blocked by perimeter bot management algorithms.",
+        message:
+          "Automated traffic blocked by perimeter bot management algorithms.",
       });
     }
   }

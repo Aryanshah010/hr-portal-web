@@ -1,17 +1,21 @@
 import express from "express";
 import { protect, restrictTo } from "../middleware/authGuard.js";
 import { schemas, validateRequest } from "../middleware/validator.js";
-import { createPaymentIntent, handleWebhook } from "../controllers/transactionController.js";
+import { csrfProtection } from "../middleware/csrf.js";
+import {
+  createPaymentIntent,
+  handleWebhook,
+} from "../controllers/transactionController.js";
 
 const router = express.Router();
-
 
 router.post(
   "/create-payment-intent",
   protect,
-  restrictTo("Admin", "Manager"),
+  restrictTo("HR"),
+  csrfProtection,
   validateRequest(schemas.disburseSalary),
-  createPaymentIntent
+  createPaymentIntent,
 );
 
 router.post("/webhook", handleWebhook);

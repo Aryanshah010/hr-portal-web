@@ -6,7 +6,23 @@ const approvalProjection =
 export const create = (data) => Attendance.create(data);
 
 export const findByIdForDecision = (id) =>
-  Attendance.findById(id).select("+encryptedReason +encryptedDecisionComment");
+  Attendance.findById(id).select("requestedBy status recordType").lean();
+export const decidePending = (
+  id,
+  { decision, approverId, encryptedDecisionComment },
+) =>
+  Attendance.findOneAndUpdate(
+    { _id: id, status: "PENDING" },
+    {
+      $set: {
+        status: decision,
+        decidedBy: approverId,
+        decidedAt: new Date(),
+        encryptedDecisionComment,
+      },
+    },
+    { new: true, runValidators: true },
+  );
 
 export const findForEmployee = async (
   employeeId,
