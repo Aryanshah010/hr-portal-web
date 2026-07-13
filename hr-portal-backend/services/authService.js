@@ -1,8 +1,14 @@
 import crypto from "crypto";
-import { authenticator } from "otplib";
+import bcrypt from "bcryptjs";
+import { generateSecret, generateURI, verify } from "otplib";
 import QRCode from "qrcode";
 import AppError from "../utils/appError.js";
-import { decrypt, encrypt, hashSecret } from "../utils/cryptoUtil.js";
+import {
+  decrypt,
+  encrypt,
+  hashPhoneLookup,
+  hashSecret,
+} from "../utils/cryptoUtil.js";
 import {
   generateAccessToken,
   signFlowToken,
@@ -16,7 +22,7 @@ import * as audit from "../repositories/auditRepository.js";
 import { ROLES, ACCOUNT_STATUS } from "../models/User.js";
 import { sendSms } from "./smsService.js";
 
-const refreshDays = 7;
+const refreshDays = 30;
 const flow = (user, purpose, expiresIn = "10m") =>
   signFlowToken({ sub: user.id || user._id.toString(), purpose }, expiresIn);
 const verifyPurpose = (token, purpose) => {
@@ -72,6 +78,23 @@ export const nextGoogleStep = (user) => {
     : { state: "MFA_ENROLMENT", flowToken: flow(user, "MFA_ENROLMENT", "10m") };
 };
 
+export const startPasswordLogin = async ({ phone, password }) => {
+  const user = await users.findByPhoneLookupHash(
+    hashPhoneLookup(phone),
+    "+passwordHash",
+  );
+  const validPassword = Boolean(
+    user?.passwordHash && (await bcrypt.compare(password, user.passwordHash)),
+  );
+  if (!validPassword)
+    throw new AppError("Invalid phone number or password.", 401);
+  if (!user.phoneVerified || user.accountStatus !== ACCOUNT_STATUS.ACTIVE)
+    throw new AppError("This account is not available for sign-in.", 403);
+  return user.mfaEnabled
+    ? { state: "MFA_CHALLENGE", flowToken: flow(user, "MFA_CHALLENGE", "5m") }
+    : { state: "MFA_ENROLMENT", flowToken: flow(user, "MFA_ENROLMENT", "10m") };
+};
+
 export const sendPhoneVerification = async ({ registrationToken, phone }) => {
   const userId = verifyPurpose(registrationToken, "REGISTRATION");
   const user = await users.findById(userId);
@@ -80,6 +103,7 @@ export const sendPhoneVerification = async ({ registrationToken, phone }) => {
   const code = newOtp();
   await users.updateById(userId, {
     phoneEncrypted: encrypt(phone),
+    phoneLookupHash: hashPhoneLookup(phone),
     phoneVerified: false,
   });
   await auth.createOtp({
@@ -127,13 +151,17 @@ export const completeRegistration = async ({
       "Verify your phone number before submitting registration.",
       400,
     );
-  const updated = await users.completeRegistration(userId, profile);
+  const { password, ...profileData } = profile;
+  const updated = await users.completeRegistration(userId, {
+    ...profileData,
+    passwordHash: await bcrypt.hash(password, 12),
+  });
   await employees.create({
     userId,
-    name: profile.name,
+    name: profileData.name,
     email: updated.email,
-    department: profile.department,
-    jobTitle: profile.jobTitle,
+    department: profileData.department,
+    jobTitle: profileData.jobTitle,
   });
   await audit.record({
     eventType: "EMPLOYEE_CREATED",
@@ -171,15 +199,23 @@ export const mfaSetup = async (token) => {
   const user = await users.findById(userId);
   if (!user || user.accountStatus !== ACCOUNT_STATUS.ACTIVE)
     throw new AppError("Account is not active.", 403);
-  const secret = authenticator.generateSecret();
+  const secret = generateSecret();
   await users.updateById(userId, {
     mfaSecretEncrypted: encrypt(secret),
     mfaEnabled: false,
   });
   return {
-    otpauthUrl: authenticator.keyuri(user.email, "Secure HR Portal", secret),
+    otpauthUrl: generateURI({
+      issuer: "Secure HR Portal",
+      label: user.email,
+      secret,
+    }),
     qrCodeDataUrl: await QRCode.toDataURL(
-      authenticator.keyuri(user.email, "Secure HR Portal", secret),
+      generateURI({
+        issuer: "Secure HR Portal",
+        label: user.email,
+        secret,
+      }),
     ),
   };
 };
@@ -189,10 +225,8 @@ export const confirmMfa = async ({ token, code, req }) => {
   const user = await users.findById(userId, "+mfaSecretEncrypted");
   if (
     !user?.mfaSecretEncrypted ||
-    !authenticator.verify({
-      token: code,
-      secret: decrypt(user.mfaSecretEncrypted),
-    })
+    !(await verify({ token: code, secret: decrypt(user.mfaSecretEncrypted) }))
+      .valid
   )
     throw new AppError("Invalid authenticator code.", 400);
   const updated = await users.updateById(userId, { mfaEnabled: true });
@@ -228,10 +262,8 @@ export const verifyTotp = async ({ token, code, req }) => {
   const user = await users.findById(userId, "+mfaSecretEncrypted");
   if (
     !user?.mfaEnabled ||
-    !authenticator.verify({
-      token: code,
-      secret: decrypt(user.mfaSecretEncrypted),
-    })
+    !(await verify({ token: code, secret: decrypt(user.mfaSecretEncrypted) }))
+      .valid
   ) {
     await audit.record({
       eventType: "AUTH_MFA_FAILED",

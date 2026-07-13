@@ -93,7 +93,6 @@ transactionSchema.index({ authorizedBy: 1, createdAt: -1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
 transactionSchema.index({ payrollRunId: 1, status: 1 }, { sparse: true });
-transactionSchema.index({ idempotencyKey: 1 }, { unique: true });
 
 transactionSchema.pre("save", function (next) {
   if (!this.isNew) {

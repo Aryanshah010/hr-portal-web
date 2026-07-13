@@ -10,6 +10,12 @@ router.get("/oauth/google", authLimiter, controller.googleStart);
 router.get("/oauth/callback", authLimiter, controller.googleCallback);
 router.use(csrfProtection);
 router.post(
+  "/login",
+  authLimiter,
+  validateRequest(schemas.login),
+  controller.login,
+);
+router.post(
   "/registration/phone/send",
   authLimiter,
   validateRequest(schemas.phone),

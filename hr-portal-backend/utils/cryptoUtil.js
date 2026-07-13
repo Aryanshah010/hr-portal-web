@@ -38,3 +38,8 @@ export const decryptPayroll = (payload) =>
   decryptValue(payload, env.payrollEncryptionKey).toString("utf8");
 export const hashSecret = (value) =>
   crypto.createHash("sha256").update(String(value)).digest("hex");
+export const hashPhoneLookup = (phone) =>
+  crypto
+    .createHmac("sha256", env.phoneLookupSecret)
+    .update(String(phone))
+    .digest("hex");

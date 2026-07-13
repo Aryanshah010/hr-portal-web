@@ -2,6 +2,8 @@ import User, { ACCOUNT_STATUS, ROLES } from "../models/User.js";
 
 export const findByEmail = (email, select = "") =>
   User.findOne({ email }).select(select);
+export const findByPhoneLookupHash = (phoneLookupHash, select = "") =>
+  User.findOne({ phoneLookupHash }).select(select);
 export const findById = (id, select = "") => User.findById(id).select(select);
 export const createGoogleUser = (data) => User.create(data);
 export const updateById = (id, update, options = {}) =>

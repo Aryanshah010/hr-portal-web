@@ -30,11 +30,28 @@ export const schemas = {
         .regex(/^\+[1-9]\d{7,14}$/, "Use an E.164 phone number."),
     })
     .strict(),
+  login: z
+    .object({
+      phone: z
+        .string()
+        .regex(/^\+[1-9]\d{7,14}$/, "Use an E.164 phone number."),
+      password: z.string().min(1).max(256),
+    })
+    .strict(),
   registration: z
     .object({
       name: safe(2, 100),
       jobTitle: safe(2, 100),
       department: safe(2, 100),
+      password: z
+        .string()
+        .min(12, "Password must contain at least 12 characters.")
+        .max(128)
+        .regex(/[a-z]/, "Password must contain a lowercase letter.")
+        .regex(/[A-Z]/, "Password must contain an uppercase letter.")
+        .regex(/\d/, "Password must contain a number.")
+        .regex(/[^A-Za-z0-9\s]/, "Password must contain a symbol.")
+        .refine((value) => !/\s/.test(value), "Password cannot contain spaces."),
     })
     .strict(),
   profile: z

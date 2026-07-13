@@ -8,7 +8,7 @@ const cookieOptions = {
   path: "/",
 };
 const tokenFor = (secret) =>
-  crypto.createHmac("sha256", env.flowSecret).update(secret).digest("hex");
+  crypto.createHmac("sha256", env.csrfSecret).update(secret).digest("hex");
 const equal = (left, right) => {
   const a = Buffer.from(left || "");
   const b = Buffer.from(right || "");

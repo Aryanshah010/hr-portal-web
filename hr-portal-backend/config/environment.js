@@ -33,6 +33,8 @@ export const env = Object.freeze({
   mongoUri,
   jwtSecret: requireInProduction("JWT_SECRET", "development-only-jwt-secret-change-me"),
   flowSecret: requireInProduction("AUTH_FLOW_SECRET", required("JWT_SECRET", "development-only-flow-secret-change-me")),
+  csrfSecret: requireInProduction("CSRF_SECRET", "development-only-csrf-secret-change-me"),
+  phoneLookupSecret: requireInProduction("PHONE_LOOKUP_SECRET", "development-only-phone-lookup-secret-change-me"),
   dbEncryptionKey: Buffer.from(encryptionKey, "hex"),
   payrollEncryptionKey: Buffer.from(payrollKey, "hex"),
   googleClientId: requireInProduction("GOOGLE_CLIENT_ID"),

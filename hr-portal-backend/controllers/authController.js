@@ -7,7 +7,6 @@ import {
 } from "../services/oauthService.js";
 import * as authService from "../services/authService.js";
 import { issueCsrfToken } from "../middleware/csrf.js";
-import { signFlowToken, verifyFlowToken } from "../utils/generateToken.js";
 
 const secure = env.httpsEnabled;
 const flowCookie = (res, name, value, maxAge = 10 * 60 * 1000) =>
@@ -31,7 +30,7 @@ const setSession = (res, session) => {
     secure,
     sameSite: "strict",
     path: "/",
-    maxAge: 15 * 60 * 1000,
+    maxAge: 30 * 86400000,
   });
   res.cookie("refresh_token", session.refreshToken, {
     httpOnly: true,
@@ -94,6 +93,15 @@ export const googleCallback = async (req, res, next) => {
     redirect(res, target);
   } catch (error) {
     next(error);
+  }
+};
+export const login = async (req, res, next) => {
+  try {
+    const step = await authService.startPasswordLogin(req.body);
+    flowCookie(res, "mfa_flow", step.flowToken, 10 * 60 * 1000);
+    res.json({ status: "success", data: { nextStep: step.state } });
+  } catch (e) {
+    next(e);
   }
 };
 export const sendPhone = async (req, res, next) => {
@@ -210,14 +218,7 @@ export const refresh = async (req, res, next) => {
 };
 export const logout = async (req, res, next) => {
   try {
-    const token = req.cookies?.access_token;
-    let sid = null;
-    if (token) {
-      try {
-        sid = verifyFlowToken(token).sid;
-      } catch {}
-    }
-    await authService.logout(req.user?.sessionId || sid);
+    await authService.logout(req.user.sessionId);
     clearSession(res);
     res.status(204).send();
   } catch (e) {
