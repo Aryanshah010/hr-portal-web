@@ -1,21 +1,22 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/context/AuthContext.js';
-import { ToastProvider } from '@/context/ToastContext.js';
-import { ErrorBoundary } from '@/components/ErrorBoundary.js';
-import { ProtectedRoute } from '@/components/ProtectedRoute.js';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext.js";
+import { ToastProvider } from "@/context/ToastContext.js";
+import { ErrorBoundary } from "@/components/ErrorBoundary.js";
+import { ProtectedRoute } from "@/components/ProtectedRoute.js";
+import { Layout } from "@/components/layout/Layout.js";
 
-// Auth Pages
-import Login from '@/pages/auth/Login.js';
-import Register from '@/pages/auth/Register.js';
-import MfaVerify from '@/pages/auth/MfaVerify.js';
+// ─── Auth Pages ───────────────────────────────────────────────────────────────
+import Login from "@/pages/auth/Login.js";
+import Register from "@/pages/auth/Register.js";
+import MfaVerify from "@/pages/auth/MfaVerify.js";
 
-// App Pages (Placeholders)
-const Dashboard = () => (
-  <div style={{ padding: '2rem', color: 'white' }}>
-    <h1>Dashboard</h1>
-    <p>Welcome to the HR Portal!</p>
-  </div>
-);
+// ─── Employee Pages ───────────────────────────────────────────────────────────
+import EmployeeDashboard from "@/pages/employee/EmployeeDashboard.js";
+import Profile from "@/pages/employee/Profile.js";
+import { Attendance } from "@/pages/employee/Attendance.js";
+import Payslips from "@/pages/employee/Payslips.js";
+import Documents from "@/pages/employee/Documents.js";
+import Reviews from "@/pages/employee/Reviews.js";
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              {/* Public/Auth Routes (Inverted Guard: redirect to dashboard if already logged in) */}
+              {/* ── Public-only routes (redirect to /dashboard if authenticated) ── */}
               <Route
                 path="/login"
                 element={
@@ -41,20 +42,27 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* MFA Verify: Unprotected by ProtectedRoute directly, it handles its own redirect if mfaPending is false */}
+
+              {/* ── MFA: self-gated (redirects to /dashboard when not mfaPending) ── */}
               <Route path="/mfa/verify" element={<MfaVerify />} />
 
-              {/* Protected App Routes */}
+              {/* ── Protected Employee Routes (wrapped in Layout) ───────────────── */}
               <Route
-                path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <Layout />
                   </ProtectedRoute>
                 }
-              />
+              >
+                <Route path="/dashboard" element={<EmployeeDashboard />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/payslips" element={<Payslips />} />
+                <Route path="/documents" element={<Documents />} />
+                <Route path="/reviews" element={<Reviews />} />
+              </Route>
 
-              {/* Redirect root to dashboard */}
+              {/* ── Fallback ───────────────────────────────────────────────────── */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

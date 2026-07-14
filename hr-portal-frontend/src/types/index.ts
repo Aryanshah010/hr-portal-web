@@ -11,7 +11,7 @@ export const Role = {
   Employee: "Employee",
   HR: "HR",
 } as const;
-export type Role = typeof Role[keyof typeof Role];
+export type Role = (typeof Role)[keyof typeof Role];
 
 /** Mirrors ACCOUNT_STATUS in models/User.js */
 export const AccountStatus = {
@@ -20,7 +20,7 @@ export const AccountStatus = {
   Active: "ACTIVE",
   Suspended: "SUSPENDED",
 } as const;
-export type AccountStatus = typeof AccountStatus[keyof typeof AccountStatus];
+export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
 
 /** Mirrors AUDIT_SEVERITY in models/AuditLog.js */
 export const AuditSeverity = {
@@ -29,7 +29,7 @@ export const AuditSeverity = {
   High: "HIGH",
   Critical: "CRITICAL",
 } as const;
-export type AuditSeverity = typeof AuditSeverity[keyof typeof AuditSeverity];
+export type AuditSeverity = (typeof AuditSeverity)[keyof typeof AuditSeverity];
 
 /** Mirrors AUDIT_EVENTS in models/AuditLog.js */
 export type AuditEventType =

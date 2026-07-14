@@ -6,7 +6,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import apiClient from "./apiClient.js";
-import type { ApiResponse, PaginatedResponse, PayrollRun, Payslip } from "@/types";
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  PayrollRun,
+  Payslip,
+} from "@/types";
 
 // ─── Query / Request shapes ───────────────────────────────────────────────────
 

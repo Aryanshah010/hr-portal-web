@@ -34,12 +34,7 @@ import {
 } from "react";
 
 import * as authService from "@/services/authService.js";
-import type {
-  AuthState,
-  MfaChallenge,
-  Role,
-  User,
-} from "@/types";
+import type { AuthState, MfaChallenge, Role, User } from "@/types";
 import { normalizeError } from "@/services/apiClient.js";
 
 // ─── Context value shape ──────────────────────────────────────────────────────
@@ -50,7 +45,7 @@ export interface AuthContextValue extends AuthState {
    * Returns the nextStep from the backend. If nextStep requires MFA,
    * sets mfaPending = true so the UI can render the TOTP form.
    */
-  login: (email: string, password: string) => Promise<MfaChallenge>;
+  login: (phone: string, password: string) => Promise<MfaChallenge>;
 
   /**
    * Verify a TOTP code during the MFA challenge or confirm MFA enrolment.
@@ -159,8 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── login ─────────────────────────────────────────────────────────────────
   const login = useCallback(
-    async (email: string, password: string): Promise<MfaChallenge> => {
-      const result = await authService.login({ email, password });
+    async (phone: string, password: string): Promise<MfaChallenge> => {
+      const result = await authService.login({ phone, password });
       const { nextStep } = result.data;
 
       if (nextStep === "MFA_CHALLENGE" || nextStep === "MFA_ENROLMENT") {
@@ -184,11 +179,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   // ── completeMfaRecovery ───────────────────────────────────────────────────
-  const completeMfaRecovery = useCallback(async (code: string): Promise<User> => {
-    const result = await authService.verifyMfaRecovery({ code });
-    dispatch({ type: "SET_USER", user: result.data.user });
-    return result.data.user;
-  }, []);
+  const completeMfaRecovery = useCallback(
+    async (code: string): Promise<User> => {
+      const result = await authService.verifyMfaRecovery({ code });
+      dispatch({ type: "SET_USER", user: result.data.user });
+      return result.data.user;
+    },
+    [],
+  );
 
   // ── refresh ───────────────────────────────────────────────────────────────
   const refresh = useCallback(async (): Promise<void> => {

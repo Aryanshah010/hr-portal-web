@@ -84,7 +84,8 @@ function SystemAnomalyFallback() {
           backgroundColor: "rgba(255, 255, 255, 0.03)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
           borderRadius: "1rem",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
         }}
       >
         {/* Warning Icon */}
@@ -124,7 +125,8 @@ function SystemAnomalyFallback() {
               lineHeight: 1.6,
             }}
           >
-            An internal system anomaly occurred. Please reference infrastructure administration logs.
+            An internal system anomaly occurred. Please reference infrastructure
+            administration logs.
           </p>
         </div>
 
@@ -142,8 +144,12 @@ function SystemAnomalyFallback() {
             cursor: "pointer",
             transition: "background-color 0.2s",
           }}
-          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#4f46e5")}
-          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#6366f1")}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.backgroundColor = "#4f46e5")
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.backgroundColor = "#6366f1")
+          }
         >
           Reload Application
         </button>

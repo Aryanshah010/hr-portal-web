@@ -24,10 +24,13 @@ export interface CreateReviewRequest {
  * Returns all performance reviews for the authenticated employee.
  * Available to all authenticated users (employees see their own, HR sees their own).
  */
-export const getMyReviews = async (): Promise<ApiResponse<{ reviews: PerformanceReview[] }>> => {
-  const res = await apiClient.get<ApiResponse<{ reviews: PerformanceReview[] }>>(
-    "/reviews/mine",
-  );
+export const getMyReviews = async (): Promise<
+  ApiResponse<{ reviews: PerformanceReview[] }>
+> => {
+  const res =
+    await apiClient.get<ApiResponse<{ reviews: PerformanceReview[] }>>(
+      "/reviews/mine",
+    );
   return res.data;
 };
 

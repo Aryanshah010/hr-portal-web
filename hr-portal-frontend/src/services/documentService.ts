@@ -6,11 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import apiClient from "./apiClient.js";
-import type {
-  ApiResponse,
-  PaginatedResponse,
-  EmployeeDocument,
-} from "@/types";
+import type { ApiResponse, PaginatedResponse, EmployeeDocument } from "@/types";
 
 // ─── Request / Query shapes ───────────────────────────────────────────────────
 
@@ -32,10 +28,13 @@ export interface PendingDocumentsQuery {
  * Returns all documents uploaded by the authenticated employee.
  * Available to all authenticated users (Employee + HR).
  */
-export const getMyDocuments = async (): Promise<ApiResponse<{ documents: EmployeeDocument[] }>> => {
-  const res = await apiClient.get<ApiResponse<{ documents: EmployeeDocument[] }>>(
-    "/documents/mine",
-  );
+export const getMyDocuments = async (): Promise<
+  ApiResponse<{ documents: EmployeeDocument[] }>
+> => {
+  const res =
+    await apiClient.get<ApiResponse<{ documents: EmployeeDocument[] }>>(
+      "/documents/mine",
+    );
   return res.data;
 };
 
@@ -93,10 +92,9 @@ export const decideDocument = async (
   id: string,
   body: DocumentDecisionRequest,
 ): Promise<ApiResponse<{ document: EmployeeDocument }>> => {
-  const res = await apiClient.patch<ApiResponse<{ document: EmployeeDocument }>>(
-    `/documents/${id}/decision`,
-    body,
-  );
+  const res = await apiClient.patch<
+    ApiResponse<{ document: EmployeeDocument }>
+  >(`/documents/${id}/decision`, body);
   return res.data;
 };
 

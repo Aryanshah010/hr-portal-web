@@ -36,7 +36,9 @@ export interface DashboardStats {
  * GET /api/dashboard  [HR only]
  * Returns aggregated HR dashboard statistics.
  */
-export const getDashboardStats = async (): Promise<ApiResponse<DashboardStats>> => {
+export const getDashboardStats = async (): Promise<
+  ApiResponse<DashboardStats>
+> => {
   const res = await apiClient.get<ApiResponse<DashboardStats>>("/dashboard");
   return res.data;
 };

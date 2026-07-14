@@ -20,7 +20,7 @@ import type {
 // ─── Request shapes ───────────────────────────────────────────────────────────
 
 export interface LoginRequest {
-  email: string;
+  phone: string;
   password: string;
 }
 
@@ -60,7 +60,10 @@ export const fetchCsrfToken = async (): Promise<string> => {
 export const login = async (
   body: LoginRequest,
 ): Promise<ApiResponse<MfaChallenge>> => {
-  const res = await apiClient.post<ApiResponse<MfaChallenge>>("/auth/login", body);
+  const res = await apiClient.post<ApiResponse<MfaChallenge>>(
+    "/auth/login",
+    body,
+  );
   return res.data;
 };
 
@@ -72,7 +75,8 @@ export const login = async (
  * Requires a valid mfa_flow cookie (set by login or OAuth callback).
  */
 export const getMfaSetup = async (): Promise<ApiResponse<MfaSetupPayload>> => {
-  const res = await apiClient.get<ApiResponse<MfaSetupPayload>>("/auth/mfa/setup");
+  const res =
+    await apiClient.get<ApiResponse<MfaSetupPayload>>("/auth/mfa/setup");
   return res.data;
 };
 
@@ -112,7 +116,9 @@ export const verifyMfa = async (
  * Triggers an SMS recovery code for users without access to their TOTP app.
  */
 export const sendMfaRecovery = async (): Promise<ApiMessageResponse> => {
-  const res = await apiClient.post<ApiMessageResponse>("/auth/mfa/recovery/send");
+  const res = await apiClient.post<ApiMessageResponse>(
+    "/auth/mfa/recovery/send",
+  );
   return res.data;
 };
 
@@ -185,7 +191,8 @@ export const completeRegistration = async (
  * Called automatically by the 401 interceptor in apiClient.ts.
  */
 export const refresh = async (): Promise<ApiResponse<{ user: User }>> => {
-  const res = await apiClient.post<ApiResponse<{ user: User }>>("/auth/refresh");
+  const res =
+    await apiClient.post<ApiResponse<{ user: User }>>("/auth/refresh");
   return res.data;
 };
 
