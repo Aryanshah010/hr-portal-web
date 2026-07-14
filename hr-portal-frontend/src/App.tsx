@@ -3,6 +3,7 @@ import { AuthProvider } from "@/context/AuthContext.js";
 import { ToastProvider } from "@/context/ToastContext.js";
 import { ErrorBoundary } from "@/components/ErrorBoundary.js";
 import { ProtectedRoute } from "@/components/ProtectedRoute.js";
+import { RoleGuard } from "@/components/RoleGuard.js";
 import { Layout } from "@/components/layout/Layout.js";
 
 // ─── Auth Pages ───────────────────────────────────────────────────────────────
@@ -17,6 +18,9 @@ import { Attendance } from "@/pages/employee/Attendance.js";
 import Payslips from "@/pages/employee/Payslips.js";
 import Documents from "@/pages/employee/Documents.js";
 import Reviews from "@/pages/employee/Reviews.js";
+
+// ─── Admin Pages ──────────────────────────────────────────────────────────────
+import AdminDashboard from "@/pages/admin/AdminDashboard.js";
 
 function App() {
   return (
@@ -60,6 +64,24 @@ function App() {
                 <Route path="/payslips" element={<Payslips />} />
                 <Route path="/documents" element={<Documents />} />
                 <Route path="/reviews" element={<Reviews />} />
+
+                {/* ── HR Admin Routes ────────────────────────────────────────────── */}
+                <Route
+                  path="/admin"
+                  element={
+                    <RoleGuard allowedRoles={["HR"]}>
+                      <Navigate to="/admin/dashboard" replace />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <RoleGuard allowedRoles={["HR"]}>
+                      <AdminDashboard />
+                    </RoleGuard>
+                  }
+                />
               </Route>
 
               {/* ── Fallback ───────────────────────────────────────────────────── */}
