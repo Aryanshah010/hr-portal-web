@@ -101,7 +101,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ) => {
       const id = `${baseId}-${++counter}`;
       const resolvedDuration = duration ?? DEFAULT_DURATION[variant];
-      const item: ToastItem = { id, variant, title, message, duration: resolvedDuration };
+      const item: ToastItem = {
+        id,
+        variant,
+        title,
+        message,
+        duration: resolvedDuration,
+      };
       dispatch({ type: "ADD", payload: item });
 
       if (resolvedDuration > 0) {

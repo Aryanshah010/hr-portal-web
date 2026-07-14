@@ -38,7 +38,8 @@ const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 
 // ─── Axios instance ───────────────────────────────────────────────────────────
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -85,7 +86,9 @@ const ensureCsrfToken = (): Promise<void> => {
 };
 
 apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> => {
+  async (
+    config: InternalAxiosRequestConfig,
+  ): Promise<InternalAxiosRequestConfig> => {
     const method = (config.method ?? "get").toLowerCase();
 
     if (MUTATING_METHODS.has(method)) {
@@ -132,7 +135,8 @@ apiClient.interceptors.response.use(
       !(config as InternalAxiosRequestConfig & { _retry?: boolean })._retry
     ) {
       // Mark so we don't recurse infinitely.
-      (config as InternalAxiosRequestConfig & { _retry?: boolean })._retry = true;
+      (config as InternalAxiosRequestConfig & { _retry?: boolean })._retry =
+        true;
 
       if (isRefreshing) {
         // Another request already kicked off a refresh — queue this one.
@@ -141,7 +145,11 @@ apiClient.interceptors.response.use(
             if (ok) resolve(apiClient(config));
             else
               reject(
-                buildApiError(401, "fail", "Session expired. Please log in again."),
+                buildApiError(
+                  401,
+                  "fail",
+                  "Session expired. Please log in again.",
+                ),
               );
           });
         });

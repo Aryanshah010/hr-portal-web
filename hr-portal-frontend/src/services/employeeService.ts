@@ -41,10 +41,11 @@ export interface RoleChangeRequest {
  * Returns the authenticated employee's own profile.
  * Available to all authenticated users (Employee + HR).
  */
-export const getMyProfile = async (): Promise<ApiResponse<{ employee: Employee }>> => {
-  const res = await apiClient.get<ApiResponse<{ employee: Employee }>>(
-    "/me/profile",
-  );
+export const getMyProfile = async (): Promise<
+  ApiResponse<{ profile: Employee }>
+> => {
+  const res =
+    await apiClient.get<ApiResponse<{ profile: Employee }>>("/me/profile");
   return res.data;
 };
 
@@ -55,8 +56,8 @@ export const getMyProfile = async (): Promise<ApiResponse<{ employee: Employee }
  */
 export const updateMyProfile = async (
   body: ProfileUpdateRequest,
-): Promise<ApiResponse<{ employee: Employee }>> => {
-  const res = await apiClient.patch<ApiResponse<{ employee: Employee }>>(
+): Promise<ApiResponse<{ profile: Employee }>> => {
+  const res = await apiClient.patch<ApiResponse<{ profile: Employee }>>(
     "/me/profile",
     body,
   );
@@ -150,7 +151,9 @@ export const changeEmployeeRole = async (
  * GET /api/hr  [HR only]
  * Returns a list of all HR users.
  */
-export const listHrUsers = async (): Promise<ApiResponse<{ users: User[] }>> => {
+export const listHrUsers = async (): Promise<
+  ApiResponse<{ users: User[] }>
+> => {
   const res = await apiClient.get<ApiResponse<{ users: User[] }>>("/hr");
   return res.data;
 };
