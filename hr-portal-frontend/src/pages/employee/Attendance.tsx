@@ -98,7 +98,7 @@ const attendanceSchema = z.discriminatedUnion("recordType", [
     recordType: z.literal("LEAVE"),
     attendanceDate: z.string().min(1, "Date is required"),
     leaveType: z.enum(["ANNUAL", "SICK", "UNPAID", "OTHER"], {
-      required_error: "Select a leave type",
+      errorMap: () => ({ message: "Select a leave type" }),
     }),
     reason: z.string().max(500).optional(),
   }),

@@ -3,6 +3,7 @@ import { AuthProvider } from "@/context/AuthContext.js";
 import { ToastProvider } from "@/context/ToastContext.js";
 import { ErrorBoundary } from "@/components/ErrorBoundary.js";
 import { ProtectedRoute } from "@/components/ProtectedRoute.js";
+import { Layout } from "@/components/layout/Layout.js";
 
 // ─── Auth Pages ───────────────────────────────────────────────────────────────
 import Login from "@/pages/auth/Login.js";
@@ -45,55 +46,21 @@ function App() {
               {/* ── MFA: self-gated (redirects to /dashboard when not mfaPending) ── */}
               <Route path="/mfa/verify" element={<MfaVerify />} />
 
-              {/* ── Protected Employee Routes ──────────────────────────────────── */}
+              {/* ── Protected Employee Routes (wrapped in Layout) ───────────────── */}
               <Route
-                path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <EmployeeDashboard />
+                    <Layout />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/attendance"
-                element={
-                  <ProtectedRoute>
-                    <Attendance />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/payslips"
-                element={
-                  <ProtectedRoute>
-                    <Payslips />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/documents"
-                element={
-                  <ProtectedRoute>
-                    <Documents />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reviews"
-                element={
-                  <ProtectedRoute>
-                    <Reviews />
-                  </ProtectedRoute>
-                }
-              />
+              >
+                <Route path="/dashboard" element={<EmployeeDashboard />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/payslips" element={<Payslips />} />
+                <Route path="/documents" element={<Documents />} />
+                <Route path="/reviews" element={<Reviews />} />
+              </Route>
 
               {/* ── Fallback ───────────────────────────────────────────────────── */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
