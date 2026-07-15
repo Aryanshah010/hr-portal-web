@@ -1,23 +1,7 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// components/ErrorBoundary.tsx
-//
-// Catches React render errors in the component tree and displays a safe,
-// generic fallback UI.
-//
-// Matches the backend's "Generic System Error Fallbacks" requirement:
-// "An internal system anomaly occurred. Please reference infrastructure administration logs."
-//
-// Usage:
-//   <ErrorBoundary>
-//     <App />
-//   </ErrorBoundary>
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { Component, type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
-  /** Optional custom fallback UI. If not provided, uses the generic system error UI. */
   fallback?: ReactNode;
 }
 
@@ -31,12 +15,10 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(_: Error): State {
-    // Update state so the next render will show the fallback UI.
     return { hasError: true };
   }
 
   public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log the error to the console for debugging (or to an error reporting service)
     console.error("Uncaught error:", error, errorInfo);
   }
 
@@ -52,8 +34,6 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-// ─── Generic Fallback UI ──────────────────────────────────────────────────────
 
 function SystemAnomalyFallback() {
   return (

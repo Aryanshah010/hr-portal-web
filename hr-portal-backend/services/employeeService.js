@@ -25,6 +25,7 @@ const visibleProfile = (user, employee, includeSensitive = false) => ({
       : null,
   }),
 });
+
 export const myProfile = async (userId) => {
   const [user, employee] = await Promise.all([
     users.findById(userId),
@@ -37,6 +38,7 @@ export const myProfile = async (userId) => {
     throw new AppError("Employee profile not found.", 404);
   return visibleProfile(user, employee, true);
 };
+
 export const updateMyProfile = async ({ userId, input, req }) => {
   const employee = await employees.updateByUserId(userId, {
     name: input.name,
@@ -63,6 +65,7 @@ export const updateMyProfile = async ({ userId, input, req }) => {
   });
   return myProfile(userId);
 };
+
 export const listEmployees = async (query) => {
   const result = await employees.list(query);
   return {
@@ -75,6 +78,7 @@ export const listEmployees = async (query) => {
     },
   };
 };
+
 export const updateSalary = async ({ employeeId, baseSalary, hrId, req }) => {
   const employee = await employees.findById(employeeId, "+baseSalaryEncrypted");
   if (!employee) throw new AppError("Employee not found.", 404);
@@ -98,6 +102,7 @@ export const updateSalary = async ({ employeeId, baseSalary, hrId, req }) => {
     metadata: { employeeId },
   });
 };
+
 export const deactivateSelf = async ({ userId, req }) => {
   await Promise.all([
     employees.deactivateByUserId(userId),
@@ -113,6 +118,7 @@ export const deactivateSelf = async ({ userId, req }) => {
     metadata: { softDelete: true },
   });
 };
+
 export const pendingEmployees = async (query) => {
   const [records, total] = await Promise.all([
     users.listPending(query),
@@ -128,6 +134,7 @@ export const pendingEmployees = async (query) => {
     },
   };
 };
+
 export const changeRole = async ({ targetUserId, role, hrId, req }) => {
   const target = await users.findById(targetUserId);
   if (!target || target.accountStatus !== ACCOUNT_STATUS.ACTIVE)

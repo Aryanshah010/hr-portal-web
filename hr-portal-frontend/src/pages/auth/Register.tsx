@@ -22,8 +22,6 @@ import { useNavigate } from "react-router-dom";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter.js";
 import type { ApiError } from "@/types/index.js";
 
-// ─── Validation Schemas ────────────────────────────────────────────────────────
-
 const phoneSchema = z.object({
   phone: z
     .string()
@@ -73,7 +71,7 @@ export function Register() {
 
   const passwordValue = profileForm.watch("password");
 
-  // ─── Step 1: Send Phone OTP ──────────────────────────────────────────────────
+  //  Step 1: Send Phone OTP
   const onPhoneSubmit = async (data: PhoneFormValues) => {
     try {
       setIsSubmitting(true);
@@ -88,7 +86,7 @@ export function Register() {
     }
   };
 
-  // ─── Step 2: Verify Phone OTP ────────────────────────────────────────────────
+  // Step 2: Verify Phone OTP
   const onOtpSubmit = async (data: OtpFormValues) => {
     try {
       setIsSubmitting(true);
@@ -103,7 +101,7 @@ export function Register() {
     }
   };
 
-  // ─── Step 3: Complete Registration ───────────────────────────────────────────
+  // Step 3: Complete Registration
   const onProfileSubmit = async (data: ProfileFormValues) => {
     try {
       setIsSubmitting(true);
@@ -111,7 +109,6 @@ export function Register() {
       success(
         "Registration complete! Please log in when your account is approved.",
       );
-      // Backend creates user in PENDING_APPROVAL status. Redirect to login.
       navigate("/login?status=pending", { replace: true });
     } catch (err) {
       const apiErr = err as ApiError;
@@ -203,7 +200,6 @@ export function Register() {
           ))}
         </div>
 
-        {/* ─── Step 1 Form ──────────────────────────────────────────────────────── */}
         {step === 1 && (
           <form
             onSubmit={phoneForm.handleSubmit(onPhoneSubmit)}
@@ -250,7 +246,6 @@ export function Register() {
           </form>
         )}
 
-        {/* ─── Step 2 Form ──────────────────────────────────────────────────────── */}
         {step === 2 && (
           <form
             onSubmit={otpForm.handleSubmit(onOtpSubmit)}
@@ -302,7 +297,6 @@ export function Register() {
           </form>
         )}
 
-        {/* ─── Step 3 Form ──────────────────────────────────────────────────────── */}
         {step === 3 && (
           <form
             onSubmit={profileForm.handleSubmit(onProfileSubmit)}
@@ -466,7 +460,6 @@ export function Register() {
   );
 }
 
-// ─── UI Helpers ────────────────────────────────────────────────────────────────
 
 const inputStyle = (error?: string) => ({
   width: "100%",

@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/admin/AuditLogViewer.tsx
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { listAuditLogs } from "@/services/auditService.js";
 import type { AuditLog } from "@/services/auditService.js";
@@ -31,7 +28,7 @@ export function AuditLogViewer() {
 
   useEffect(() => {
     fetchData(1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const columns = [
     {

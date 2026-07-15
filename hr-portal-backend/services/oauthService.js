@@ -11,10 +11,12 @@ const client = () =>
   );
 const signature = (value) =>
   crypto.createHmac("sha256", env.oauthStateSecret).update(value).digest("hex");
+
 export const createState = () => {
   const value = crypto.randomBytes(32).toString("hex");
   return { value, signed: `${value}.${signature(value)}` };
 };
+
 export const validState = (signed) => {
   const [value, provided] = String(signed || "").split(".");
   const expected = signature(value);
@@ -24,6 +26,7 @@ export const validState = (signed) => {
     ? value
     : null;
 };
+
 export const authorizationUrl = (state) =>
   client().generateAuthUrl({
     access_type: "offline",

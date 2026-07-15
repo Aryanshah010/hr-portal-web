@@ -1,4 +1,3 @@
-# Root-Level System Exclusions
 .DS_Store
 Thumbs.db
 *.log
@@ -7,7 +6,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Security & Secret Management
 **/.env
 **/.env.local
 **/.env.development.local
@@ -17,7 +15,6 @@ yarn-error.log*
 **/*.pem
 **/*.key
 
-# Backend: hr-portal-backend
 hr-portal-backend/node_modules/
 hr-portal-backend/pids
 hr-portal-backend/lib-cov
@@ -26,7 +23,6 @@ hr-portal-backend/.nyc_output/
 hr-portal-backend/.vscode/
 hr-portal-backend/.idea/
 
-# Frontend: hr-portal-frontend
 hr-portal-frontend/node_modules/
 hr-portal-frontend/dist/
 hr-portal-frontend/build/
@@ -34,7 +30,6 @@ hr-portal-frontend/.svelte-kit/
 hr-portal-frontend/.next/
 hr-portal-frontend/out/
 
-# IDE / Editor Configurations
 .vscode/
 .idea/
 *.suo

@@ -1,9 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/employee/Attendance.tsx
-//
-// Two-tab UI for submitting attendance/leave requests and viewing history.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,8 +20,6 @@ import {
 } from "@/services/attendanceService.js";
 import type { Attendance } from "@/types/index.js";
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const glass: React.CSSProperties = {
   background: "rgba(255,255,255,0.03)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -35,8 +27,6 @@ const glass: React.CSSProperties = {
   backdropFilter: "blur(12px)",
   WebkitBackdropFilter: "blur(12px)",
 };
-
-// ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: Attendance["status"] }) {
   const colors: Record<Attendance["status"], { bg: string; text: string }> = {
@@ -70,8 +60,6 @@ function StatusBadge({ status }: { status: Attendance["status"] }) {
   );
 }
 
-// ─── Input helper style ───────────────────────────────────────────────────────
-
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.75rem 1rem",
@@ -83,8 +71,6 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   boxSizing: "border-box",
 };
-
-// ─── Validation schema ────────────────────────────────────────────────────────
 
 const attendanceSchema = z.discriminatedUnion("recordType", [
   z.object({
@@ -98,15 +84,13 @@ const attendanceSchema = z.discriminatedUnion("recordType", [
     recordType: z.literal("LEAVE"),
     attendanceDate: z.string().min(1, "Date is required"),
     leaveType: z.enum(["ANNUAL", "SICK", "UNPAID", "OTHER"], {
-      errorMap: () => ({ message: "Select a leave type" }),
+      message: "Select a leave type",
     }),
     reason: z.string().max(500).optional(),
   }),
 ]);
 
 type AttendanceFormValues = z.infer<typeof attendanceSchema>;
-
-// ─── Submit tab ───────────────────────────────────────────────────────────────
 
 function SubmitTab() {
   const toast = useToast();
@@ -426,8 +410,6 @@ function SubmitTab() {
   );
 }
 
-// ─── History tab ──────────────────────────────────────────────────────────────
-
 function HistoryTab() {
   const [records, setRecords] = useState<Attendance[]>([]);
   const [page, setPage] = useState(1);
@@ -682,8 +664,6 @@ function HistoryTab() {
     </div>
   );
 }
-
-// ─── Main page ────────────────────────────────────────────────────────────────
 
 export function Attendance() {
   const [activeTab, setActiveTab] = useState<"submit" | "history">("submit");

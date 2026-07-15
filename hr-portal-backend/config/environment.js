@@ -6,8 +6,6 @@ const required = (name, fallback = null) => process.env[name] || fallback;
 const nodeEnv = required("NODE_ENV", "development");
 const isProduction = nodeEnv === "production";
 
-// Keep local coursework setup friendly, but never allow a production process to
-// start without its security-critical configuration.
 const requireInProduction = (name, fallback = null) => {
   const value = required(name, fallback);
   if (isProduction && !value)

@@ -84,7 +84,6 @@ export const startPasswordLogin = async ({
   captchaToken,
   captchaAnswer,
 }) => {
-  // Validate CAPTCHA if provided or if we want to enforce it (we'll enforce if failedAttempts > 0)
   const user = await users.findByPhoneLookupHash(
     hashPhoneLookup(phone),
     "+passwordHash",
@@ -104,7 +103,7 @@ export const startPasswordLogin = async ({
       throw new AppError(
         "CAPTCHA required due to previous failed attempts.",
         428,
-      ); // Precondition Required
+      );
     }
     const [ivHex, encrypted] = captchaToken.split(":");
     try {

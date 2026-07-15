@@ -1,12 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/employee/Profile.tsx
-//
-// Employee self-service profile page.
-// IDOR-safe: always calls /me/profile — never accepts an ID from the URL.
-// Read-only: email, role, accountStatus, mfaEnabled (from useAuth().user)
-// Editable:  name, jobTitle, department (Employee record fields)
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,9 +19,6 @@ import { getMyProfile, updateMyProfile } from "@/services/employeeService.js";
 import type { Employee } from "@/types/index.js";
 import { AvatarUpload } from "@/components/employee/AvatarUpload.js";
 
-// ─── Validation schema ────────────────────────────────────────────────────────
-
-/** Mirrors backend safe string rules: min 2, max 100, stripped */
 const safeStr = (label: string) =>
   z
     .string()
@@ -46,8 +34,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-// ─── Shared card style ────────────────────────────────────────────────────────
-
 const glass: React.CSSProperties = {
   background: "rgba(255,255,255,0.03)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -55,8 +41,6 @@ const glass: React.CSSProperties = {
   backdropFilter: "blur(12px)",
   WebkitBackdropFilter: "blur(12px)",
 };
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function Profile() {
   const { user } = useAuth();
@@ -77,7 +61,6 @@ export function Profile() {
     defaultValues: { name: "", jobTitle: "", department: "" },
   });
 
-  // ── Fetch profile on mount ────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -103,7 +86,6 @@ export function Profile() {
     };
   }, [reset]);
 
-  // ── Save handler ──────────────────────────────────────────────────────────
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       setIsSaving(true);
@@ -126,8 +108,6 @@ export function Profile() {
       setIsSaving(false);
     }
   };
-
-  // ── Render helpers ────────────────────────────────────────────────────────
 
   const statusColor = (s: string) => {
     if (s === "ACTIVE") return "var(--color-success, #22c55e)";

@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/admin/ReviewManagement.tsx
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,7 +57,7 @@ export function ReviewManagement() {
     listEmployees({ limit: 100 })
       .then((res) => setEmployees(res.data.items))
       .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
   const onSubmit = async (data: any) => {
     try {

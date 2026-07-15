@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/admin/Transactions.tsx
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { listTransactions } from "@/services/transactionService.js";
 import type { Transaction } from "@/types/index.js";
@@ -31,7 +28,7 @@ export function Transactions() {
 
   useEffect(() => {
     fetchData(1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const renderStatus = (status: string) => {
     switch (status) {

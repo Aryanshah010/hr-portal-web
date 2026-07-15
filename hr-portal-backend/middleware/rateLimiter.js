@@ -1,17 +1,8 @@
 import rateLimit from "express-rate-limit";
 
-// ---------------------------------------------------------------------------
-// In-memory IP Blocklist  (satisfies Rubric 3.2 – IP-level WAF blocking)
-// ---------------------------------------------------------------------------
-/** @type {Map<string, number>} ip => unix timestamp when the ban expires */
 const blocklist = new Map();
 
-/**
- * Block an IP address for `durationMs` milliseconds (default: 24 h).
- * Called automatically when the global rate-limiter trips, or can be
- * called directly by admin routes.
- */
-export const blockIp = (ip, durationMs = 24 * 60 * 60 * 1000) => {
+const blockIp = (ip, durationMs = 24 * 60 * 60 * 1000) => {
   blocklist.set(ip, Date.now() + durationMs);
 };
 
@@ -26,7 +17,6 @@ export const isBlocked = (ip) => {
   return true;
 };
 
-/** Express middleware — must be mounted BEFORE routes. */
 export const ipBlocklistMiddleware = (req, res, next) => {
   const ip = req.ip || req.socket?.remoteAddress || "unknown";
   if (isBlocked(ip)) {
@@ -39,16 +29,12 @@ export const ipBlocklistMiddleware = (req, res, next) => {
   next();
 };
 
-// ---------------------------------------------------------------------------
-// Rate limiters
-// ---------------------------------------------------------------------------
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    // Auto-block IPs that repeatedly trip the global limiter
     const ip = req.ip || req.socket?.remoteAddress;
     if (ip) blockIp(ip, 60 * 60 * 1000); // 1-hour block
     res.status(429).json({

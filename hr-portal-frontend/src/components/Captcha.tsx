@@ -6,12 +6,6 @@ interface CaptchaProps {
   error?: string;
 }
 
-/**
- * Self-hosted SVG CAPTCHA component.
- * - Fetches a new CAPTCHA SVG from /api/auth/captcha (GET).
- * - The backend sets an encrypted HttpOnly cookie with the answer.
- * - The user types the characters they see; the parent receives the plain answer.
- */
 const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
   const [svg, setSvg] = useState<string>("");
   const [value, setValue] = useState("");
@@ -26,8 +20,6 @@ const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
       });
       const text = await res.text();
       setSvg(text);
-      // The cookie is set by the server; pass a sentinel so the parent knows
-      // to include captchaAnswer in the login request.
       onToken("__cookie__");
     } catch {
       setSvg("<svg></svg>");
@@ -58,7 +50,6 @@ const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
         Security Check
       </label>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        {/* Inline SVG */}
         <div
           style={{
             background: "#fff",
@@ -72,7 +63,7 @@ const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
           }}
           dangerouslySetInnerHTML={{ __html: loading ? "<svg/>" : svg }}
         />
-        {/* Refresh */}
+
         <button
           type="button"
           onClick={fetchCaptcha}

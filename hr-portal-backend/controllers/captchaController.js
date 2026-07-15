@@ -2,7 +2,6 @@ import svgCaptcha from "svg-captcha";
 import crypto from "crypto";
 import { env } from "../config/environment.js";
 
-// Helper to encrypt the captcha answer
 const encryptCaptcha = (text) => {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv("aes-256-cbc", env.dbEncryptionKey, iv);

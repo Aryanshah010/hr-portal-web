@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/admin/AdminDashboard.tsx
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "@/services/dashboardService.js";
 import { useToast } from "@/context/ToastContext.js";

@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { env } from "../config/environment.js";
 
-/** Hash a User-Agent string so raw UA is never stored in the token. */
 const uaHash = (ua) =>
   crypto
     .createHash("sha256")
@@ -18,7 +17,7 @@ export const generateAccessToken = ({ user, sessionId, userAgent }) =>
       sid: sessionId,
       mfaVerified: true,
       sv: user.securityVersion,
-      uah: uaHash(userAgent), // User-Agent hash for session binding
+      uah: uaHash(userAgent),
     },
     env.jwtSecret,
     { expiresIn: "30d", issuer: "secure-hr-portal", audience: "secure-hr-web" },

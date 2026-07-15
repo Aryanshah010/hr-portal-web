@@ -5,10 +5,12 @@ import { encrypt } from "../utils/cryptoUtil.js";
 import AppError from "../utils/appError.js";
 
 const toUtcDate = (value) => new Date(`${value}T00:00:00.000Z`);
+
 const pageResult = ({ records, total }, page, limit) => ({
   records,
   pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
 });
+
 export const submit = async ({ userId, payload, req }) => {
   const employee = await employees.findByUserId(userId);
   if (!employee?.isActive)
@@ -42,6 +44,7 @@ export const submit = async ({ userId, payload, req }) => {
     throw error;
   }
 };
+
 export const listMine = async ({ userId, query }) => {
   const employee = await employees.findByUserId(userId);
   if (!employee) throw new AppError("Employee profile not found.", 404);
@@ -51,12 +54,14 @@ export const listMine = async ({ userId, query }) => {
     query.limit,
   );
 };
+
 export const listForApproval = async ({ query }) =>
   pageResult(
     await attendanceRepository.findPending(query),
     query.page,
     query.limit,
   );
+
 export const decide = async ({ id, decision, approverId, comment, req }) => {
   const record = await attendanceRepository.findByIdForDecision(id);
   if (!record) throw new AppError("Attendance request not found.", 404);

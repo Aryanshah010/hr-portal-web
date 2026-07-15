@@ -17,10 +17,6 @@ export interface AuditListQuery {
   limit?: number;
 }
 
-/**
- * GET /api/audit-logs  [HR only]
- * Returns a paginated list of immutable audit logs.
- */
 export const listAuditLogs = async (
   query: AuditListQuery = {},
 ): Promise<PaginatedResponse<AuditLog>> => {

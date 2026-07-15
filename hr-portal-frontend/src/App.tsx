@@ -6,12 +6,12 @@ import { ProtectedRoute } from "@/components/ProtectedRoute.js";
 import { RoleGuard } from "@/components/RoleGuard.js";
 import { Layout } from "@/components/layout/Layout.js";
 
-// ─── Auth Pages ───────────────────────────────────────────────────────────────
+// Auth Pages
 import Login from "@/pages/auth/Login.js";
 import Register from "@/pages/auth/Register.js";
 import MfaVerify from "@/pages/auth/MfaVerify.js";
 
-// ─── Employee Pages ───────────────────────────────────────────────────────────
+// Employee Pages
 import EmployeeDashboard from "@/pages/employee/EmployeeDashboard.js";
 import Profile from "@/pages/employee/Profile.js";
 import { Attendance } from "@/pages/employee/Attendance.js";
@@ -19,7 +19,7 @@ import Payslips from "@/pages/employee/Payslips.js";
 import Documents from "@/pages/employee/Documents.js";
 import Reviews from "@/pages/employee/Reviews.js";
 
-// ─── Admin Pages ──────────────────────────────────────────────────────────────
+// Admin Pages
 import AdminDashboard from "@/pages/admin/AdminDashboard.js";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement.js";
 import AuditLogViewer from "@/pages/admin/AuditLogViewer.js";
@@ -34,7 +34,6 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              {/* ── Public-only routes (redirect to /dashboard if authenticated) ── */}
               <Route
                 path="/login"
                 element={
@@ -52,10 +51,8 @@ function App() {
                 }
               />
 
-              {/* ── MFA: self-gated (redirects to /dashboard when not mfaPending) ── */}
               <Route path="/mfa/verify" element={<MfaVerify />} />
 
-              {/* ── Protected Employee Routes (wrapped in Layout) ───────────────── */}
               <Route
                 element={
                   <ProtectedRoute>
@@ -70,7 +67,6 @@ function App() {
                 <Route path="/documents" element={<Documents />} />
                 <Route path="/reviews" element={<Reviews />} />
 
-                {/* ── HR Admin Routes ────────────────────────────────────────────── */}
                 <Route
                   path="/admin"
                   element={
@@ -130,7 +126,7 @@ function App() {
                 />
               </Route>
 
-              {/* ── Fallback ───────────────────────────────────────────────────── */}
+              {/*  Fallback  */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/admin/PayrollRuns.tsx
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,7 +61,7 @@ export function PayrollRuns() {
 
   useEffect(() => {
     fetchData(1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = async (data: any) => {
     try {

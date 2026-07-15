@@ -37,7 +37,6 @@ export function MfaVerify() {
     resolver: zodResolver(mfaSchema),
   });
 
-  // Focus the input on mount
   useEffect(() => {
     setFocus("code");
   }, [setFocus, isRecoveryMode]);
@@ -53,8 +52,6 @@ export function MfaVerify() {
     }
   }, [recoveryCooldown]);
 
-  // If we arrived here but MFA is not actually pending, go back to login.
-  // (Or if the user just successfully completed it, they will be redirected to dashboard).
   if (!mfaPending) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -65,10 +62,8 @@ export function MfaVerify() {
       if (isRecoveryMode) {
         await completeMfaRecovery(data.code);
       } else {
-        await completeMfa(data.code, false); // isEnrolment = false for challenge
+        await completeMfa(data.code, false); 
       }
-      // On success, the AuthContext state updates (isAuthenticated = true, mfaPending = false)
-      // The redirect above (!mfaPending) or a ProtectedRoute will handle routing them to the app.
       navigate("/dashboard", { replace: true });
     } catch (err) {
       const apiErr = err as ApiError;

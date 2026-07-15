@@ -79,7 +79,7 @@ export function EmployeeManagement() {
 
   useEffect(() => {
     fetchData(1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const onApprove = async (id: string) => {
     try {
@@ -94,8 +94,6 @@ export function EmployeeManagement() {
   const onUpdateSalary = async (data: any) => {
     if (!salaryModal.employeeId) return;
     try {
-      // The API validator strictly allows { baseSalary: number }
-      // This is mass-assignment safe because we only send this whitelisted field.
       await updateEmployeeSalary(salaryModal.employeeId, {
         baseSalary: data.baseSalary,
       } as any);
@@ -111,7 +109,6 @@ export function EmployeeManagement() {
   const onUpdateRole = async (newRole: "Employee" | "HR") => {
     if (!roleModal.employeeId) return;
     try {
-      // The API validator strictly allows { role: "Employee" | "HR" }
       await changeEmployeeRole(roleModal.employeeId, { role: newRole });
       success(`Role updated to ${newRole}`);
       setRoleModal({
@@ -160,7 +157,7 @@ export function EmployeeManagement() {
           >
             <DollarSign size={14} /> Salary
           </button>
-          {/* Note: In a real system, the user's role is on the User model, not Employee model, so HR must search or we show a generic update role button */}
+
           <button
             onClick={() =>
               setRoleModal({
