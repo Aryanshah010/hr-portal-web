@@ -23,6 +23,9 @@ import Reviews from "@/pages/employee/Reviews.js";
 import AdminDashboard from "@/pages/admin/AdminDashboard.js";
 import EmployeeManagement from "@/pages/admin/EmployeeManagement.js";
 import AuditLogViewer from "@/pages/admin/AuditLogViewer.js";
+import ReviewManagement from "./pages/admin/ReviewManagement";
+import Transactions from "./pages/admin/Transactions";
+import PayrollRuns from "./pages/admin/PayrollRuns";
 
 function App() {
   return (
@@ -98,6 +101,30 @@ function App() {
                   element={
                     <RoleGuard allowedRoles={["HR"]}>
                       <AuditLogViewer />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/admin/payroll"
+                  element={
+                    <RoleGuard allowedRoles={["HR"]}>
+                      <PayrollRuns />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/admin/transactions"
+                  element={
+                    <RoleGuard allowedRoles={["HR"]}>
+                      <Transactions />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/admin/reviews"
+                  element={
+                    <RoleGuard allowedRoles={["HR"]}>
+                      <ReviewManagement />
                     </RoleGuard>
                   }
                 />
