@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import apiClient from "@/services/apiClient.js";
 
 interface CaptchaProps {
   onToken: (token: string) => void;
@@ -15,11 +16,10 @@ const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
     setLoading(true);
     setValue("");
     try {
-      const res = await fetch("/api/auth/captcha", {
-        credentials: "include",
+      const res = await apiClient.get("/auth/captcha", {
+        responseType: "text",
       });
-      const text = await res.text();
-      setSvg(text);
+      setSvg(res.data);
       onToken("__cookie__");
     } catch {
       setSvg("<svg></svg>");

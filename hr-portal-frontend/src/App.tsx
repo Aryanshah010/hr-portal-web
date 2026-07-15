@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary.js";
 import { ProtectedRoute } from "@/components/ProtectedRoute.js";
 import { RoleGuard } from "@/components/RoleGuard.js";
 import { Layout } from "@/components/layout/Layout.js";
+import { LandingPage } from "@/pages/LandingPage.js";
 
 // Auth Pages
 import Login from "@/pages/auth/Login.js";
@@ -127,7 +128,14 @@ function App() {
               </Route>
 
               {/*  Fallback  */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute invertGuard fallback="/dashboard">
+                    <LandingPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </BrowserRouter>
