@@ -1,5 +1,8 @@
 import * as employee from "../services/employeeService.js";
 import * as auth from "../services/authService.js";
+import * as attendanceRepo from "../repositories/attendanceRepository.js";
+import * as reviewRepo from "../repositories/reviewRepository.js";
+import * as userRepo from "../repositories/userRepository.js";
 export const myProfile = async (req, res, next) => {
   try {
     res.json({
@@ -99,6 +102,43 @@ export const changeRole = async (req, res, next) => {
 export const listHr = async (_req, res, next) => {
   try {
     res.json({ status: "success", data: { records: await employee.listHr() } });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const exportMyData = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [profile, user] = await Promise.all([
+      employee.myProfile(userId),
+      userRepo.findById(userId),
+    ]);
+    const [attendance, reviews] = await Promise.all([
+      attendanceRepo.findForEmployee(profile._id || profile.id, {
+        limit: 1000,
+        page: 1,
+      }),
+      reviewRepo.listForEmployee(profile._id || profile.id),
+    ]);
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      user: {
+        email: user.email,
+        role: user.role,
+        accountStatus: user.accountStatus,
+        createdAt: user.createdAt,
+      },
+      profile,
+      attendance: attendance?.records || attendance || [],
+      reviews: reviews || [],
+    };
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="my-data-export-${Date.now()}.json"`,
+    );
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).send(JSON.stringify(exportData, null, 2));
   } catch (e) {
     next(e);
   }

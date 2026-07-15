@@ -22,6 +22,7 @@ import type {
 export interface LoginRequest {
   phone: string;
   password: string;
+  captchaAnswer?: string;
 }
 
 export interface OtpRequest {

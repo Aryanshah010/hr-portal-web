@@ -200,7 +200,7 @@ export interface Transaction {
   type: "SALARY_DISBURSEMENT" | "PAYSLIP_PAYMENT" | "REFUND";
   status: "PENDING" | "COMPLETED" | "FAILED" | "ROLLED_BACK";
   amountNPR: number;
-  /** stripePaymentIntentId is select:false — never sent to the client */
+  /** esewaReference is select:false — never sent to the client */
   idempotencyKey: string;
   digitalSignature: string;
   signaturePublicKeyId: string;

@@ -8,6 +8,7 @@ import { useToast } from "@/context/ToastContext.js";
 import { LogIn, Phone, Lock, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ApiError } from "@/types/index.js";
+import Captcha from "@/components/Captcha.js";
 
 const loginSchema = z.object({
   phone: z
@@ -23,6 +24,8 @@ export function Login() {
   const { error } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
 
   const {
     register,
@@ -35,14 +38,29 @@ export function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsSubmitting(true);
-      const { nextStep } = await login(data.phone, data.password);
+      const { nextStep } = await login(
+        data.phone,
+        data.password,
+        showCaptcha ? captchaAnswer : undefined,
+      );
 
       if (nextStep === "MFA_CHALLENGE" || nextStep === "MFA_ENROLMENT") {
         navigate("/mfa/verify", { replace: true });
       }
     } catch (err) {
       const apiErr = err as ApiError;
-      error(apiErr.message || "Failed to sign in. Please try again.");
+      const status = (apiErr as unknown as { status?: number }).status;
+      if (status === 428) {
+        // CAPTCHA required by server
+        setShowCaptcha(true);
+        error("CAPTCHA required. Please complete the security check below.");
+      } else if (status === 403) {
+        error("Password expired. Please contact HR to reset your password.");
+      } else {
+        // Any other failure — show captcha proactively
+        setShowCaptcha(true);
+        error(apiErr.message || "Failed to sign in. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -314,6 +332,11 @@ export function Login() {
               </p>
             )}
           </div>
+
+          {/* CAPTCHA — shown after first failed attempt */}
+          {showCaptcha && (
+            <Captcha onToken={() => {}} onAnswer={setCaptchaAnswer} />
+          )}
 
           <button
             type="submit"

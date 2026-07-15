@@ -10,9 +10,11 @@ import {
 } from "./middleware/securityHeaders.js";
 import { configureCors } from "./middleware/corsPolicy.js";
 import { globalErrorHandler } from "./middleware/errorHandler.js";
-import { globalLimiter } from "./middleware/rateLimiter.js";
+import {
+  globalLimiter,
+  ipBlocklistMiddleware,
+} from "./middleware/rateLimiter.js";
 import { cleanNoSqlInjection } from "./middleware/nosqlSanitizer.js";
-import { enforceCloudflareGateway } from "./middleware/cloudflareGateway.js";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
@@ -25,14 +27,13 @@ import auditRoutes from "./routes/auditRoutes.js";
 
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", env.cloudflareEnabled ? 1 : false);
+app.set("trust proxy", 1);
 await connectDatabase();
-app.use(enforceCloudflareGateway);
 app.use(configureSecurityHeaders());
 app.use(enforceSupplementalHeaders);
 app.use(configureCors());
+app.use(ipBlocklistMiddleware);
 app.use(globalLimiter);
-app.use("/api/transactions/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 app.use(cleanNoSqlInjection);

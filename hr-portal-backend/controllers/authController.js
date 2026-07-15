@@ -97,7 +97,15 @@ export const googleCallback = async (req, res, next) => {
 };
 export const login = async (req, res, next) => {
   try {
-    const step = await authService.startPasswordLogin(req.body);
+    const { phone, password, captchaAnswer } = req.body;
+    const captchaToken = req.cookies.captcha_token;
+
+    const step = await authService.startPasswordLogin({
+      phone,
+      password,
+      captchaToken,
+      captchaAnswer,
+    });
     flowCookie(res, "mfa_flow", step.flowToken, 10 * 60 * 1000);
     res.json({ status: "success", data: { nextStep: step.state } });
   } catch (e) {

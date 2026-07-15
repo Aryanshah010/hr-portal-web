@@ -181,7 +181,7 @@ export const executeRun = async ({ id, hrId, req }) => {
     await payroll.finishProcessingRun(
       run.id,
       "FAILED",
-      "Stripe sandbox payment intent creation failed.",
+      "eSewa payment processing failed.",
     );
     throw error;
   }

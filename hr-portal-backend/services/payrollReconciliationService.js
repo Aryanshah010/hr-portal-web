@@ -13,6 +13,6 @@ export const reconcilePayrollTransaction = async (transaction) => {
     rows.every((row) => row.status === "COMPLETED") ? "COMPLETED" : "FAILED",
     rows.every((row) => row.status === "COMPLETED")
       ? null
-      : "One or more Stripe sandbox payments failed.",
+      : "One or more eSewa payments failed.",
   );
 };

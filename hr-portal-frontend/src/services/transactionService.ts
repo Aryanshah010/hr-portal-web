@@ -4,8 +4,8 @@
 //
 // Route prefix: /api/transactions
 //
-// Note: /api/transactions/webhook is a Stripe webhook — it does NOT go through
-// the frontend. It is listed here only for documentation completeness.
+// Payment processor: eSewa (sandbox).
+// Transactions are signed with RSA-SHA256 on the backend for data integrity.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import apiClient from "./apiClient.js";
@@ -35,13 +35,12 @@ export interface TransactionListQuery {
 
 /**
  * POST /api/transactions/create-payment-intent  [HR only]
- * Creates a Stripe PaymentIntent for a payslip disbursement.
- * The backend signs the transaction and records a PENDING Transaction document.
+ * Initiates an eSewa disbursement for a payslip.
+ * The backend signs the transaction with RSA-SHA256 and generates an
+ * HMAC-SHA256 eSewa signature, then immediately marks it COMPLETED in sandbox.
  * Requires CSRF token.
  *
- * Returns the created Transaction record. The Stripe client secret is not
- * exposed to the frontend — Stripe payment confirmation is handled server-side
- * via the /webhook endpoint.
+ * Returns the created Transaction record.
  */
 export const createPaymentIntent = async (
   body: CreatePaymentIntentRequest,

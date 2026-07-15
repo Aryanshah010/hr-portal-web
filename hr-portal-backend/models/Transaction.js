@@ -44,7 +44,7 @@ const transactionSchema = new mongoose.Schema(
       required: [true, "Amount in NPR is required."],
       min: [0.01, "Transaction amount must be positive."],
     },
-    stripePaymentIntentId: {
+    esewaReference: {
       type: String,
       default: null,
       select: false,
@@ -91,7 +91,7 @@ const transactionSchema = new mongoose.Schema(
 transactionSchema.index({ employeeId: 1, createdAt: -1 });
 transactionSchema.index({ authorizedBy: 1, createdAt: -1 });
 transactionSchema.index({ status: 1 });
-transactionSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
+transactionSchema.index({ esewaReference: 1 }, { sparse: true });
 transactionSchema.index({ payrollRunId: 1, status: 1 }, { sparse: true });
 
 transactionSchema.pre("save", function (next) {

@@ -4,7 +4,6 @@ import { schemas, validateRequest } from "../middleware/validator.js";
 import { csrfProtection } from "../middleware/csrf.js";
 import {
   createPaymentIntent,
-  handleWebhook,
   list,
 } from "../controllers/transactionController.js";
 
@@ -26,7 +25,5 @@ router.post(
   validateRequest(schemas.disburseSalary),
   createPaymentIntent,
 );
-
-router.post("/webhook", handleWebhook);
 
 export default router;

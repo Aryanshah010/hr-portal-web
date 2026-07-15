@@ -45,7 +45,11 @@ export interface AuthContextValue extends AuthState {
    * Returns the nextStep from the backend. If nextStep requires MFA,
    * sets mfaPending = true so the UI can render the TOTP form.
    */
-  login: (phone: string, password: string) => Promise<MfaChallenge>;
+  login: (
+    phone: string,
+    password: string,
+    captchaAnswer?: string,
+  ) => Promise<MfaChallenge>;
 
   /**
    * Verify a TOTP code during the MFA challenge or confirm MFA enrolment.
@@ -154,8 +158,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── login ─────────────────────────────────────────────────────────────────
   const login = useCallback(
-    async (phone: string, password: string): Promise<MfaChallenge> => {
-      const result = await authService.login({ phone, password });
+    async (
+      phone: string,
+      password: string,
+      captchaAnswer?: string,
+    ): Promise<MfaChallenge> => {
+      const result = await authService.login({
+        phone,
+        password,
+        captchaAnswer,
+      });
       const { nextStep } = result.data;
 
       if (nextStep === "MFA_CHALLENGE" || nextStep === "MFA_ENROLMENT") {

@@ -252,7 +252,7 @@ export function PayrollRuns() {
                 fontSize: "0.8rem",
               }}
             >
-              <PlayCircle size={14} /> Execute Stripe Payouts
+              <PlayCircle size={14} /> Execute eSewa Payouts
             </button>
           )}
         </div>
@@ -300,7 +300,7 @@ export function PayrollRuns() {
             }}
           >
             Generate payslips, approve totals, and execute mass payouts via
-            Stripe.
+            eSewa.
           </p>
         </div>
         <button
