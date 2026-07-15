@@ -51,7 +51,10 @@ export const schemas = {
         .regex(/[A-Z]/, "Password must contain an uppercase letter.")
         .regex(/\d/, "Password must contain a number.")
         .regex(/[^A-Za-z0-9\s]/, "Password must contain a symbol.")
-        .refine((value) => !/\s/.test(value), "Password cannot contain spaces."),
+        .refine(
+          (value) => !/\s/.test(value),
+          "Password cannot contain spaces.",
+        ),
     })
     .strict(),
   profile: z
@@ -167,6 +170,9 @@ export const schemas = {
         .optional(),
     })
     .strict(),
+  auditListQuery: page.strict(),
+  transactionListQuery: page.strict(),
+  reviewListQuery: page.strict(),
   emptyBody: z.object({}).strict(),
 };
 export const validateRequest =
@@ -174,16 +180,14 @@ export const validateRequest =
   (req, res, next) => {
     const result = schema.safeParse(req[source]);
     if (!result.success)
-      return res
-        .status(400)
-        .json({
-          status: "fail",
-          message: "Validation failed.",
-          errors: result.error.issues.map((issue) => ({
-            field: issue.path.join("."),
-            message: issue.message,
-          })),
-        });
+      return res.status(400).json({
+        status: "fail",
+        message: "Validation failed.",
+        errors: result.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
     if (source === "body") req.body = result.data;
     else req.validated = { ...(req.validated || {}), [source]: result.data };
     next();

@@ -21,6 +21,7 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -43,6 +44,7 @@ app.use("/api", employeeRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/audit-logs", auditRoutes);
 app.get("/health", (_req, res) =>
   res
     .status(200)

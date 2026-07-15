@@ -6,7 +6,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import apiClient from "./apiClient.js";
-import type { ApiResponse, PerformanceReview } from "@/types";
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  PerformanceReview,
+} from "@/types/index.js";
 
 // ─── Request shapes ───────────────────────────────────────────────────────────
 
@@ -15,6 +19,11 @@ export interface CreateReviewRequest {
   period: string; // "YYYY-MM"
   rating: number; // 1–5 (validated server-side)
   comment: string; // plaintext; backend encrypts before persisting
+}
+
+export interface ReviewListQuery {
+  page?: number;
+  limit?: number;
 }
 
 // ─── Review Service ───────────────────────────────────────────────────────────
@@ -46,6 +55,22 @@ export const createReview = async (
   const res = await apiClient.post<ApiResponse<{ review: PerformanceReview }>>(
     "/reviews",
     body,
+  );
+  return res.data;
+};
+
+/**
+ * GET /api/reviews  [HR only]
+ * Returns a paginated list of all performance reviews.
+ */
+export const listReviews = async (
+  query: ReviewListQuery = {},
+): Promise<PaginatedResponse<PerformanceReview>> => {
+  const res = await apiClient.get<PaginatedResponse<PerformanceReview>>(
+    "/reviews",
+    {
+      params: query,
+    },
   );
   return res.data;
 };

@@ -5,6 +5,14 @@ import { validateRequest, schemas } from "../middleware/validator.js";
 import * as controller from "../controllers/reviewController.js";
 const router = express.Router();
 router.use(protect);
+
+router.get(
+  "/",
+  restrictTo("HR"),
+  validateRequest(schemas.reviewListQuery, "query"),
+  controller.list,
+);
+
 router.get("/mine", controller.mine);
 router.post(
   "/",

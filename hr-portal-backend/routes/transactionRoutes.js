@@ -5,9 +5,18 @@ import { csrfProtection } from "../middleware/csrf.js";
 import {
   createPaymentIntent,
   handleWebhook,
+  list,
 } from "../controllers/transactionController.js";
 
 const router = express.Router();
+
+router.get(
+  "/",
+  protect,
+  restrictTo("HR"),
+  validateRequest(schemas.transactionListQuery, "query"),
+  list,
+);
 
 router.post(
   "/create-payment-intent",

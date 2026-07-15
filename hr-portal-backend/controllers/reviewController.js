@@ -1,4 +1,17 @@
 import * as reviews from "../services/reviewService.js";
+import * as reviewRepo from "../repositories/reviewRepository.js";
+
+export const list = async (req, res, next) => {
+  try {
+    res.json({
+      status: "success",
+      data: await reviewRepo.listAll(req.validated.query),
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const save = async (req, res, next) => {
   try {
     res.status(201).json({
@@ -15,6 +28,7 @@ export const save = async (req, res, next) => {
     next(e);
   }
 };
+
 export const mine = async (req, res, next) => {
   try {
     res.json({

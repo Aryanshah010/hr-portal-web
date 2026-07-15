@@ -6,6 +6,18 @@ import {
 } from "../services/transactionService.js";
 import { env } from "../config/environment.js";
 import AppError from "../utils/appError.js";
+import * as transactions from "../repositories/transactionRepository.js";
+
+export const list = async (req, res, next) => {
+  try {
+    res.json({
+      status: "success",
+      data: await transactions.list(req.validated.query),
+    });
+  } catch (e) {
+    next(e);
+  }
+};
 
 export const createPaymentIntent = async (req, res, next) => {
   try {
