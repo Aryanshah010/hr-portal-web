@@ -70,7 +70,7 @@ export function Reviews() {
         padding: "2rem",
       }}
     >
-      <div style={{ maxWidth: "56rem", margin: "0 auto" }}>
+      <div style={{ maxWidth: "90rem", margin: "0 auto" }}>
         {/* Header */}
         <div
           style={{

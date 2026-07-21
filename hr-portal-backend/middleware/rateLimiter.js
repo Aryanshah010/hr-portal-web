@@ -7,6 +7,7 @@ const blockIp = (ip, durationMs = 24 * 60 * 60 * 1000) => {
 };
 
 export const unblockIp = (ip) => blocklist.delete(ip);
+
 export const isBlocked = (ip) => {
   const expiry = blocklist.get(ip);
   if (!expiry) return false;

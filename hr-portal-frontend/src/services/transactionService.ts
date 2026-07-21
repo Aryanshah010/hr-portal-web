@@ -6,11 +6,8 @@ import type {
 } from "@/types/index.js";
 
 export interface CreatePaymentIntentRequest {
-  /** The Payslip ObjectId to disburse payment for */
   payslipId: string;
-  /** Amount in NPR (must match the payslip's netNPR) */
   amountNPR: number;
-  /** Idempotency key to prevent duplicate disbursements */
   idempotencyKey: string;
 }
 

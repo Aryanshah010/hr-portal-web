@@ -153,10 +153,16 @@ export const sendPhoneVerification = async ({ registrationToken, phone }) => {
   const user = await users.findById(userId);
   if (!user || user.accountStatus !== ACCOUNT_STATUS.REGISTRATION)
     throw new AppError("Registration is not available.", 409);
+  const hashed = hashPhoneLookup(phone);
+  const existing = await users.findByPhoneLookupHash(hashed);
+  if (existing && existing.id !== userId) {
+    throw new AppError("Phone number is already registered.", 409);
+  }
+
   const code = newOtp();
   await users.updateById(userId, {
     phoneEncrypted: encrypt(phone),
-    phoneLookupHash: hashPhoneLookup(phone),
+    phoneLookupHash: hashed,
     phoneVerified: false,
   });
   await auth.createOtp({
@@ -253,14 +259,20 @@ export const approveEmployee = async ({ userId, hrId, req }) => {
 
 export const mfaSetup = async (token) => {
   const userId = verifyPurpose(token, "MFA_ENROLMENT");
-  const user = await users.findById(userId);
+  const user = await users.findById(userId, "+mfaSecretEncrypted");
   if (!user || user.accountStatus !== ACCOUNT_STATUS.ACTIVE)
     throw new AppError("Account is not active.", 403);
-  const secret = generateSecret();
-  await users.updateById(userId, {
-    mfaSecretEncrypted: encrypt(secret),
-    mfaEnabled: false,
-  });
+
+  let secret;
+  if (user.mfaSecretEncrypted) {
+    secret = decrypt(user.mfaSecretEncrypted);
+  } else {
+    secret = generateSecret();
+    await users.updateById(userId, {
+      mfaSecretEncrypted: encrypt(secret),
+      mfaEnabled: false,
+    });
+  }
   return {
     otpauthUrl: generateURI({
       issuer: "Secure HR Portal",

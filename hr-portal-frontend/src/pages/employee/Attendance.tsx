@@ -118,6 +118,19 @@ function SubmitTab() {
   };
 
   const onSubmit = async (data: AttendanceFormValues) => {
+    // Build a timezone-offset string like "+05:45" or "-07:00"
+    const tzOffset = (() => {
+      const off = -new Date().getTimezoneOffset(); // minutes, positive = ahead of UTC
+      const sign = off >= 0 ? "+" : "-";
+      const abs = Math.abs(off);
+      const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+      const mm = String(abs % 60).padStart(2, "0");
+      return `${sign}${hh}:${mm}`;
+    })();
+
+    const toISO = (date: string, time: string) =>
+      `${date}T${time}:00${tzOffset}`;
+
     try {
       await submitAttendance({
         recordType: data.recordType,
@@ -125,10 +138,10 @@ function SubmitTab() {
         ...(data.recordType === "ATTENDANCE"
           ? {
               checkInAt: data.checkInAt
-                ? `${data.attendanceDate}T${data.checkInAt}:00`
+                ? toISO(data.attendanceDate, data.checkInAt)
                 : undefined,
               checkOutAt: data.checkOutAt
-                ? `${data.attendanceDate}T${data.checkOutAt}:00`
+                ? toISO(data.attendanceDate, data.checkOutAt)
                 : undefined,
             }
           : {
@@ -138,12 +151,20 @@ function SubmitTab() {
       });
       toast.success("Request submitted successfully!");
       reset({ recordType, attendanceDate: "" } as AttendanceFormValues);
-    } catch {
-      toast.error("Failed to submit. Please try again.");
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to submit. Please try again.",
+      );
     }
   };
 
   const errs = errors as Record<string, { message?: string }>;
+
+  const todayLocal = new Date();
+  todayLocal.setMinutes(
+    todayLocal.getMinutes() - todayLocal.getTimezoneOffset(),
+  );
+  const todayString = todayLocal.toISOString().split("T")[0];
 
   return (
     <form
@@ -211,6 +232,8 @@ function SubmitTab() {
         <input
           {...register("attendanceDate")}
           type="date"
+          max={recordType === "ATTENDANCE" ? todayString : undefined}
+          min={recordType === "LEAVE" ? todayString : undefined}
           disabled={isSubmitting}
           style={{
             ...inputStyle,
@@ -342,34 +365,35 @@ function SubmitTab() {
         </div>
       )}
 
-      {/* Reason */}
-      <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "0.875rem",
-            fontWeight: 500,
-            marginBottom: "0.5rem",
-          }}
-        >
-          Reason{" "}
-          <span
+      {recordType === "LEAVE" && (
+        <div>
+          <label
             style={{
-              color: "var(--color-text-muted, #94a3b8)",
-              fontWeight: 400,
+              display: "block",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              marginBottom: "0.5rem",
             }}
           >
-            (optional)
-          </span>
-        </label>
-        <textarea
-          {...register("reason" as keyof AttendanceFormValues)}
-          rows={3}
-          placeholder="Additional context for your request…"
-          disabled={isSubmitting}
-          style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
-        />
-      </div>
+            Reason{" "}
+            <span
+              style={{
+                color: "var(--color-text-muted, #94a3b8)",
+                fontWeight: 400,
+              }}
+            >
+              (optional)
+            </span>
+          </label>
+          <textarea
+            {...register("reason" as keyof AttendanceFormValues)}
+            rows={3}
+            placeholder="Briefly explain the reason for your leave…"
+            disabled={isSubmitting}
+            style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+          />
+        </div>
+      )}
 
       <button
         type="submit"
@@ -495,29 +519,24 @@ function HistoryTab() {
                 <tr
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
                 >
-                  {[
-                    "Date",
-                    "Type",
-                    "Leave Type",
-                    "Check In",
-                    "Check Out",
-                    "Status",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        textAlign: "left",
-                        padding: "0.75rem 0.5rem",
-                        color: "var(--color-text-muted, #94a3b8)",
-                        fontWeight: 500,
-                        fontSize: "0.78rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  {["Date", "Type", "Check In", "Check Out", "Status"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        style={{
+                          textAlign: "left",
+                          padding: "0.75rem 0.5rem",
+                          color: "var(--color-text-muted, #94a3b8)",
+                          fontWeight: 500,
+                          fontSize: "0.78rem",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -556,16 +575,10 @@ function HistoryTab() {
                               : "#a78bfa",
                         }}
                       >
-                        {r.recordType}
+                        {r.recordType === "ATTENDANCE"
+                          ? "ATTENDANCE"
+                          : `LEAVE (${r.leaveType})`}
                       </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: "0.875rem 0.5rem",
-                        color: "var(--color-text-muted, #94a3b8)",
-                      }}
-                    >
-                      {r.leaveType ?? "—"}
                     </td>
                     <td
                       style={{
@@ -680,7 +693,7 @@ export function Attendance() {
     >
       <div
         style={{
-          maxWidth: "56rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",

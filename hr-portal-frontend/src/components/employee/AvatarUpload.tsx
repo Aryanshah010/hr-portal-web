@@ -7,10 +7,10 @@ const PRIVATE_IP_PATTERNS = [
   /^10\./,
   /^192\.168\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
-  /^169\.254\./, 
+  /^169\.254\./,
   /^0\./,
   /^::1$/,
-  /^fd[0-9a-f]{2}:/i, 
+  /^fd[0-9a-f]{2}:/i,
   /^\[::1\]$/,
 ];
 
@@ -35,7 +35,6 @@ function validateAvatarUrl(raw: string): string | null {
 
   return null;
 }
-
 
 interface AvatarUploadProps {
   value?: string;
@@ -71,7 +70,6 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-
       <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
         <div
           style={{

@@ -2,6 +2,7 @@ import * as payrollService from "../services/payrollService.js";
 import AppError from "../utils/appError.js";
 
 const validId = (value) => /^[0-9a-fA-F]{24}$/.test(value);
+
 const ensureId = (value, label) => {
   if (!validId(value)) throw new AppError(`Invalid ${label} ID.`, 400);
 };
@@ -20,6 +21,7 @@ export const createRun = async (req, res, next) => {
     next(error);
   }
 };
+
 export const listRuns = async (req, res, next) => {
   try {
     res.status(200).json({
@@ -30,6 +32,7 @@ export const listRuns = async (req, res, next) => {
     next(error);
   }
 };
+
 export const getRun = async (req, res, next) => {
   try {
     res.status(200).json({
@@ -40,6 +43,7 @@ export const getRun = async (req, res, next) => {
     next(error);
   }
 };
+
 export const submitRun = async (req, res, next) => {
   try {
     ensureId(req.params.id, "payroll run");
@@ -51,6 +55,7 @@ export const submitRun = async (req, res, next) => {
     next(error);
   }
 };
+
 export const approveRun = async (req, res, next) => {
   try {
     ensureId(req.params.id, "payroll run");
@@ -68,6 +73,7 @@ export const approveRun = async (req, res, next) => {
     next(error);
   }
 };
+
 export const executeRun = async (req, res, next) => {
   try {
     ensureId(req.params.id, "payroll run");
@@ -85,6 +91,7 @@ export const executeRun = async (req, res, next) => {
     next(error);
   }
 };
+
 export const getPayslip = async (req, res, next) => {
   try {
     res.status(200).json({

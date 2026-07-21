@@ -71,17 +71,14 @@ attendanceSchema.index({ status: 1, createdAt: -1 });
 attendanceSchema.index({ requestedBy: 1, createdAt: -1 });
 attendanceSchema.index({ employeeId: 1, attendanceDate: 1 }, { unique: true });
 
-attendanceSchema.pre("save", function (next) {
+attendanceSchema.pre("save", function () {
   if (
     !this.isNew &&
     this.isModified("status") &&
     this._originalStatus !== "PENDING"
   ) {
-    return next(
-      new Error("A finalized attendance request cannot be decided again."),
-    );
+    throw new Error("A finalized attendance request cannot be decided again.");
   }
-  next();
 });
 
 attendanceSchema.post("init", function (doc) {

@@ -137,7 +137,7 @@ export function Documents() {
     >
       <div
         style={{
-          maxWidth: "56rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",

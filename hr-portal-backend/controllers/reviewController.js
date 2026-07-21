@@ -33,7 +33,7 @@ export const mine = async (req, res, next) => {
   try {
     res.json({
       status: "success",
-      data: { records: await reviews.mine(req.user.id) },
+      data: { reviews: await reviews.mine(req.user.id) },
     });
   } catch (e) {
     next(e);

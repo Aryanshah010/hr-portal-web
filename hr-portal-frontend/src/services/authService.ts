@@ -11,6 +11,7 @@ export interface LoginRequest {
   phone: string;
   password: string;
   captchaAnswer?: string;
+  captchaToken?: string;
 }
 
 export interface OtpRequest {
@@ -36,9 +37,13 @@ export const fetchCsrfToken = async (): Promise<string> => {
 export const login = async (
   body: LoginRequest,
 ): Promise<ApiResponse<MfaChallenge>> => {
+  // _skipRefresh: a 401 here means wrong credentials, not an expired session.
+  // Without this, a failed login triggers the token-refresh interceptor, which
+  // then redirects to /login and the spinner never stops.
   const res = await apiClient.post<ApiResponse<MfaChallenge>>(
     "/auth/login",
     body,
+    { _skipRefresh: true } as Parameters<typeof apiClient.post>[2],
   );
   return res.data;
 };
@@ -127,7 +132,9 @@ export const logout = async (): Promise<void> => {
 };
 
 export const getMe = async (): Promise<ApiResponse<{ user: User }>> => {
-  const res = await apiClient.get<ApiResponse<{ user: User }>>("/auth/me");
+  const res = await apiClient.get<ApiResponse<{ user: User }>>("/auth/me", {
+    _skipRefresh: true,
+  } as Parameters<typeof apiClient.get>[1]);
   return res.data;
 };
 
@@ -135,5 +142,15 @@ export const startGoogleOAuth = (apiBase = BASE_URL): void => {
   window.location.href = `${apiBase}/auth/oauth/google`;
 };
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+export const getHrContact = async (): Promise<{
+  email: string | null;
+  name: string | null;
+}> => {
+  const res =
+    await apiClient.get<
+      ApiResponse<{ email: string | null; name: string | null }>
+    >("/auth/hr-contact");
+  return res.data.data;
+};
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";

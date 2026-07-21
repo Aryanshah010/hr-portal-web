@@ -42,7 +42,7 @@ export const findForEmployee = async (
       .lean(),
     Attendance.countDocuments(filter),
   ]);
-  return { records, total };
+  return { items: records, total, page, pages: Math.ceil(total / limit) };
 };
 
 export const findPending = async ({ page, limit, status, recordType }) => {
@@ -60,5 +60,5 @@ export const findPending = async ({ page, limit, status, recordType }) => {
       .lean(),
     Attendance.countDocuments(filter),
   ]);
-  return { records, total };
+  return { items: records, total, page, pages: Math.ceil(total / limit) };
 };

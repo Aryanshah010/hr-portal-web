@@ -134,7 +134,7 @@ export function Register() {
       <div
         style={{
           width: "100%",
-          maxWidth: "32rem",
+          maxWidth: "90rem",
           background: "rgba(255, 255, 255, 0.03)",
           backdropFilter: "blur(12px)",
           border: "1px solid rgba(255, 255, 255, 0.08)",
@@ -459,7 +459,6 @@ export function Register() {
     </div>
   );
 }
-
 
 const inputStyle = (error?: string) => ({
   width: "100%",

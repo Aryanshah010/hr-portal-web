@@ -6,9 +6,11 @@ import AppError from "../utils/appError.js";
 
 const toUtcDate = (value) => new Date(`${value}T00:00:00.000Z`);
 
-const pageResult = ({ records, total }, page, limit) => ({
-  records,
-  pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+const pageResult = ({ items, total }, page, limit) => ({
+  items,
+  total,
+  page,
+  pages: Math.ceil(total / limit),
 });
 
 export const submit = async ({ userId, payload, req }) => {

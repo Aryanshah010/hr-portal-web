@@ -16,6 +16,7 @@ export interface AuthContextValue extends AuthState {
     phone: string,
     password: string,
     captchaAnswer?: string,
+    captchaToken?: string,
   ) => Promise<MfaChallenge>;
 
   completeMfa: (code: string, isEnrolment?: boolean) => Promise<User>;
@@ -92,11 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone: string,
       password: string,
       captchaAnswer?: string,
+      captchaToken?: string,
     ): Promise<MfaChallenge> => {
       const result = await authService.login({
         phone,
         password,
         captchaAnswer,
+        captchaToken,
       });
       const { nextStep } = result.data;
 

@@ -3,6 +3,7 @@ import * as auth from "../services/authService.js";
 import * as attendanceRepo from "../repositories/attendanceRepository.js";
 import * as reviewRepo from "../repositories/reviewRepository.js";
 import * as userRepo from "../repositories/userRepository.js";
+
 export const myProfile = async (req, res, next) => {
   try {
     res.json({
@@ -13,6 +14,7 @@ export const myProfile = async (req, res, next) => {
     next(e);
   }
 };
+
 export const updateMyProfile = async (req, res, next) => {
   try {
     res.json({
@@ -29,6 +31,7 @@ export const updateMyProfile = async (req, res, next) => {
     next(e);
   }
 };
+
 export const deactivateMe = async (req, res, next) => {
   try {
     await employee.deactivateSelf({ userId: req.user.id, req });
@@ -37,6 +40,7 @@ export const deactivateMe = async (req, res, next) => {
     next(e);
   }
 };
+
 export const list = async (req, res, next) => {
   try {
     res.json({
@@ -47,6 +51,7 @@ export const list = async (req, res, next) => {
     next(e);
   }
 };
+
 export const pending = async (req, res, next) => {
   try {
     res.json({
@@ -57,6 +62,7 @@ export const pending = async (req, res, next) => {
     next(e);
   }
 };
+
 export const approve = async (req, res, next) => {
   try {
     res.json({
@@ -73,6 +79,7 @@ export const approve = async (req, res, next) => {
     next(e);
   }
 };
+
 export const salary = async (req, res, next) => {
   try {
     await employee.updateSalary({
@@ -86,6 +93,7 @@ export const salary = async (req, res, next) => {
     next(e);
   }
 };
+
 export const changeRole = async (req, res, next) => {
   try {
     await employee.changeRole({
@@ -99,6 +107,7 @@ export const changeRole = async (req, res, next) => {
     next(e);
   }
 };
+
 export const listHr = async (_req, res, next) => {
   try {
     res.json({ status: "success", data: { records: await employee.listHr() } });
@@ -130,7 +139,7 @@ export const exportMyData = async (req, res, next) => {
         createdAt: user.createdAt,
       },
       profile,
-      attendance: attendance?.records || attendance || [],
+      attendance: attendance?.items || [],
       reviews: reviews || [],
     };
     res.setHeader(
@@ -139,6 +148,19 @@ export const exportMyData = async (req, res, next) => {
     );
     res.setHeader("Content-Type", "application/json");
     res.status(200).send(JSON.stringify(exportData, null, 2));
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const deleteEmployee = async (req, res, next) => {
+  try {
+    await employee.deleteEmployee({
+      targetUserId: req.params.id,
+      hrId: req.user.id,
+      req,
+    });
+    res.status(204).send();
   } catch (e) {
     next(e);
   }

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { startGoogleOAuth } from "@/services/authService.js";
 import {
   ArrowRight,
   ShieldCheck,
@@ -112,8 +113,8 @@ export function LandingPage() {
           >
             Sign in
           </Link>
-          <Link
-            to="/register"
+          <button
+            onClick={() => startGoogleOAuth()}
             style={{
               background: "var(--color-primary, #6366f1)",
               color: "white",
@@ -126,6 +127,8 @@ export function LandingPage() {
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
+              border: "none",
+              cursor: "pointer",
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.opacity = "0.9";
@@ -137,7 +140,7 @@ export function LandingPage() {
             }}
           >
             Request Access
-          </Link>
+          </button>
         </div>
       </nav>
 
@@ -151,7 +154,7 @@ export function LandingPage() {
             flexDirection: "column",
             alignItems: "center",
             textAlign: "center",
-            maxWidth: "64rem",
+            maxWidth: "90rem",
             margin: "0 auto",
           }}
         >
@@ -194,7 +197,7 @@ export function LandingPage() {
             style={{
               fontSize: "1.2rem",
               color: "var(--color-text-muted, #94a3b8)",
-              maxWidth: "42rem",
+              maxWidth: "90rem",
               margin: "0 auto 3rem",
               lineHeight: 1.6,
             }}
@@ -212,8 +215,8 @@ export function LandingPage() {
               justifyContent: "center",
             }}
           >
-            <Link
-              to="/register"
+            <button
+              onClick={() => startGoogleOAuth()}
               style={{
                 background: "white",
                 color: "black",
@@ -227,6 +230,8 @@ export function LandingPage() {
                 gap: "0.5rem",
                 transition: "transform 0.2s, boxShadow 0.2s",
                 boxShadow: "0 0 0 0 rgba(255,255,255,0.3)",
+                border: "none",
+                cursor: "pointer",
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.transform = "translateY(-2px)";
@@ -240,7 +245,7 @@ export function LandingPage() {
               }}
             >
               Get Started <ArrowRight size={18} />
-            </Link>
+            </button>
           </div>
         </section>
 
@@ -248,7 +253,7 @@ export function LandingPage() {
         <section
           style={{
             padding: "4rem 2rem 8rem",
-            maxWidth: "72rem",
+            maxWidth: "90rem",
             margin: "0 auto",
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",

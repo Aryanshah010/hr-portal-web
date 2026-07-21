@@ -11,6 +11,7 @@ import { LandingPage } from "@/pages/LandingPage.js";
 import Login from "@/pages/auth/Login.js";
 import Register from "@/pages/auth/Register.js";
 import MfaVerify from "@/pages/auth/MfaVerify.js";
+import MfaSetup from "@/pages/auth/MfaSetup.js";
 
 // Employee Pages
 import EmployeeDashboard from "@/pages/employee/EmployeeDashboard.js";
@@ -28,11 +29,14 @@ import ReviewManagement from "./pages/admin/ReviewManagement";
 import Transactions from "./pages/admin/Transactions";
 import PayrollRuns from "./pages/admin/PayrollRuns";
 
+import { ToastContainer } from "@/components/ToastContainer.js";
+
 function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
         <AuthProvider>
+          <ToastContainer />
           <BrowserRouter>
             <Routes>
               <Route
@@ -53,6 +57,7 @@ function App() {
               />
 
               <Route path="/mfa/verify" element={<MfaVerify />} />
+              <Route path="/mfa/setup" element={<MfaSetup />} />
 
               <Route
                 element={
@@ -61,12 +66,47 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="/dashboard" element={<EmployeeDashboard />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <RoleGuard allowedRoles={["Employee"]}>
+                      <EmployeeDashboard />
+                    </RoleGuard>
+                  }
+                />
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/attendance" element={<Attendance />} />
-                <Route path="/payslips" element={<Payslips />} />
-                <Route path="/documents" element={<Documents />} />
-                <Route path="/reviews" element={<Reviews />} />
+                <Route
+                  path="/attendance"
+                  element={
+                    <RoleGuard allowedRoles={["Employee"]}>
+                      <Attendance />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/payslips"
+                  element={
+                    <RoleGuard allowedRoles={["Employee"]}>
+                      <Payslips />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/documents"
+                  element={
+                    <RoleGuard allowedRoles={["Employee"]}>
+                      <Documents />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/reviews"
+                  element={
+                    <RoleGuard allowedRoles={["Employee"]}>
+                      <Reviews />
+                    </RoleGuard>
+                  }
+                />
 
                 <Route
                   path="/admin"

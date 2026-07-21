@@ -1,4 +1,5 @@
 import Transaction from "../models/Transaction.js";
+
 export const create = (data) => Transaction.create(data);
 export const findById = (id) => Transaction.findById(id).lean();
 
@@ -14,6 +15,7 @@ export const complete = (id) =>
     },
     { new: true },
   );
+
 export const fail = (id, errorDetails) =>
   Transaction.findOneAndUpdate(
     { _id: id, status: "PENDING" },
@@ -25,6 +27,7 @@ export const fail = (id, errorDetails) =>
     },
     { new: true },
   );
+  
 export const forPayrollRun = (payrollRunId) =>
   Transaction.find({ payrollRunId }).select("status").lean();
 

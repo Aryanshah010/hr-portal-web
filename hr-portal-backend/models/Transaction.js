@@ -115,4 +115,5 @@ transactionSchema.post("init", function (doc) {
 });
 
 const Transaction = mongoose.model("Transaction", transactionSchema);
+
 export default Transaction;

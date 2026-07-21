@@ -29,7 +29,7 @@ router.get(
 router.get(
   "/employees/pending",
   restrictTo("HR"),
-  validateRequest(schemas.reviewPeriod, "query"),
+  validateRequest(schemas.employeeList, "query"),
   controller.pending,
 );
 
@@ -57,5 +57,12 @@ router.patch(
 );
 
 router.get("/hr", restrictTo("HR"), controller.listHr);
+
+router.delete(
+  "/employees/:id",
+  restrictTo("HR"),
+  csrfProtection,
+  controller.deleteEmployee,
+);
 
 export default router;

@@ -14,8 +14,7 @@ const getCookie = (name: string): string => {
 
 const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -83,7 +82,14 @@ apiClient.interceptors.response.use(
     if (
       response.status === 401 &&
       config &&
-      !(config as InternalAxiosRequestConfig & { _retry?: boolean })._retry
+      !(
+        config as InternalAxiosRequestConfig & {
+          _retry?: boolean;
+          _skipRefresh?: boolean;
+        }
+      )._retry &&
+      !(config as InternalAxiosRequestConfig & { _skipRefresh?: boolean })
+        ._skipRefresh
     ) {
       (config as InternalAxiosRequestConfig & { _retry?: boolean })._retry =
         true;

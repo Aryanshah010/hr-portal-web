@@ -3,8 +3,8 @@ import type { ApiResponse, PaginatedResponse, Attendance } from "@/types";
 
 export interface SubmitAttendanceRequest {
   recordType: "ATTENDANCE" | "LEAVE";
-  attendanceDate: string; // ISO 8601 date string "YYYY-MM-DD"
-  checkInAt?: string | null; // ISO 8601 datetime (ATTENDANCE records)
+  attendanceDate: string; 
+  checkInAt?: string | null;
   checkOutAt?: string | null;
   leaveType?: "ANNUAL" | "SICK" | "UNPAID" | "OTHER" | null;
   reason?: string;

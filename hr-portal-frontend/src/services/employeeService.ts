@@ -17,7 +17,7 @@ export interface ProfileUpdateRequest {
 
 export interface SalaryUpdateRequest {
   baseSalaryNPR: number;
-  effectiveDate?: string; 
+  effectiveDate?: string;
 }
 
 export interface RoleChangeRequest {
@@ -73,6 +73,10 @@ export const approveEmployee = async (
     `/employees/${id}/approve`,
   );
   return res.data;
+};
+
+export const deleteEmployee = async (id: string): Promise<void> => {
+  await apiClient.delete(`/employees/${id}`);
 };
 
 export const updateEmployeeSalary = async (

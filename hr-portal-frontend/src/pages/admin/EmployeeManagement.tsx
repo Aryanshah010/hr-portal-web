@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/admin/EmployeeManagement.tsx
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,13 +8,21 @@ import {
   changeEmployeeRole,
   approveEmployee,
   listPendingEmployees,
+  deleteEmployee,
 } from "@/services/employeeService.js";
 import type { Employee, User } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
 import { DataTable } from "@/components/ui/DataTable.js";
 import { Modal } from "@/components/ui/Modal.js";
 import { FormInput } from "@/components/ui/FormInput.js";
-import { Users, Shield, DollarSign, CheckCircle, User2 } from "lucide-react";
+import {
+  Users,
+  Shield,
+  DollarSign,
+  CheckCircle,
+  User2,
+  Trash2,
+} from "lucide-react";
 
 const salarySchema = z.object({
   baseSalary: z.coerce
@@ -29,7 +34,6 @@ const salarySchema = z.object({
 export function EmployeeManagement() {
   const { error, success } = useToast();
 
-  // Lists
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pending, setPending] = useState<User[]>([]);
   const [page, setPage] = useState(1);
@@ -49,6 +53,12 @@ export function EmployeeManagement() {
     currentRole: string;
   }>({ isOpen: false, employeeId: null, name: "", currentRole: "Employee" });
 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    employeeId: string | null;
+    name: string;
+  }>({ isOpen: false, employeeId: null, name: "" });
+
   // Salary Form
   const {
     register: regSalary,
@@ -66,10 +76,10 @@ export function EmployeeManagement() {
         listEmployees({ page: p, limit: 15 }),
         listPendingEmployees(),
       ]);
-      setEmployees(empRes.data.items);
-      setTotalPages(empRes.data.pages);
-      setPage(empRes.data.page);
-      setPending(pendRes.data.items);
+      setEmployees(empRes.data.items || []);
+      setTotalPages(empRes.data.pages || 1);
+      setPage(empRes.data.page || 1);
+      setPending(pendRes.data.items || []);
     } catch (err: any) {
       error(err.message || "Failed to load employees");
     } finally {
@@ -120,6 +130,18 @@ export function EmployeeManagement() {
       fetchData(page);
     } catch (err: any) {
       error(err.message || "Failed to update role");
+    }
+  };
+
+  const onDeleteEmployee = async () => {
+    if (!deleteModal.employeeId) return;
+    try {
+      await deleteEmployee(deleteModal.employeeId);
+      success("Employee deleted successfully");
+      setDeleteModal({ isOpen: false, employeeId: null, name: "" });
+      fetchData(page);
+    } catch (err: any) {
+      error(err.message || "Failed to delete employee");
     }
   };
 
@@ -182,6 +204,30 @@ export function EmployeeManagement() {
           >
             <Shield size={14} /> Role
           </button>
+
+          <button
+            onClick={() =>
+              setDeleteModal({
+                isOpen: true,
+                employeeId: e.userId,
+                name: e.name,
+              })
+            }
+            style={{
+              padding: "0.4rem 0.75rem",
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.2)",
+              color: "#ef4444",
+              borderRadius: "0.5rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              fontSize: "0.8rem",
+            }}
+          >
+            <Trash2 size={14} /> Delete
+          </button>
         </div>
       ),
     },
@@ -221,7 +267,7 @@ export function EmployeeManagement() {
     <div
       style={{
         padding: "2rem",
-        maxWidth: "72rem",
+        maxWidth: "90rem",
         margin: "0 auto",
         display: "flex",
         flexDirection: "column",
@@ -399,6 +445,57 @@ export function EmployeeManagement() {
               }}
             />
             <div style={{ fontWeight: 600 }}>HR Admin</div>
+          </button>
+        </div>
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        title={`Delete Employee: ${deleteModal.name}`}
+      >
+        <p
+          style={{
+            margin: "0 0 1.5rem",
+            color: "var(--color-text-muted, #94a3b8)",
+            fontSize: "0.95rem",
+            lineHeight: 1.5,
+          }}
+        >
+          Are you sure you want to delete this employee? This action will
+          deactivate their profile, suspend their account, and revoke all active
+          sessions immediately.
+        </p>
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}
+        >
+          <button
+            onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+            style={{
+              padding: "0.75rem 1.25rem",
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "0.5rem",
+              color: "white",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onDeleteEmployee}
+            style={{
+              padding: "0.75rem 1.25rem",
+              background: "#ef4444",
+              border: "none",
+              borderRadius: "0.5rem",
+              color: "white",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Yes, Delete Employee
           </button>
         </div>
       </Modal>

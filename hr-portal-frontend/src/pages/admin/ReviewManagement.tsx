@@ -57,7 +57,7 @@ export function ReviewManagement() {
     listEmployees({ limit: 100 })
       .then((res) => setEmployees(res.data.items))
       .catch(() => {});
-  }, []); 
+  }, []);
 
   const onSubmit = async (data: any) => {
     try {
@@ -109,7 +109,7 @@ export function ReviewManagement() {
     <div
       style={{
         padding: "2rem",
-        maxWidth: "72rem",
+        maxWidth: "90rem",
         margin: "0 auto",
         display: "flex",
         flexDirection: "column",

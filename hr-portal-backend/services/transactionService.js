@@ -53,16 +53,12 @@ export const initiateSalaryDisbursement = async ({
     signaturePublicKeyId: env.rsaPublicKeyId,
   });
   try {
-    // eSewa B2B Fund Transfer (Simulated for academic purposes)
-    // In eSewa v2, signatures are generated using HMAC SHA256
     const message = `total_amount=${amount},transaction_uuid=${transaction.id},product_code=${env.esewaMerchantCode}`;
     const esewaSignature = crypto
       .createHmac("sha256", env.esewaSecretKey)
       .update(message)
       .digest("base64");
 
-    // Since this is a payout (and we don't have a real B2B eSewa sandbox endpoint),
-    // we immediately mark the transaction as completed to simulate a successful API call.
     await transactions.complete(transaction.id);
     const updated = await transactions.findById(transaction.id);
     if (updated) await reconcilePayrollTransaction(updated);

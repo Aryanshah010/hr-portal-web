@@ -62,7 +62,7 @@ export function MfaVerify() {
       if (isRecoveryMode) {
         await completeMfaRecovery(data.code);
       } else {
-        await completeMfa(data.code, false); 
+        await completeMfa(data.code, false);
       }
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -110,7 +110,7 @@ export function MfaVerify() {
       <div
         style={{
           width: "100%",
-          maxWidth: "28rem",
+          maxWidth: "90rem",
           background: "rgba(255, 255, 255, 0.03)",
           backdropFilter: "blur(12px)",
           border: "1px solid rgba(255, 255, 255, 0.08)",

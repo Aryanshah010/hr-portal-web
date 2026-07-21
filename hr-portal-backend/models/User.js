@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 export const ROLES = Object.freeze({ EMPLOYEE: "Employee", HR: "HR" });
+
 export const ACCOUNT_STATUS = Object.freeze({
   REGISTRATION: "REGISTRATION",
   PENDING: "PENDING_APPROVAL",
@@ -58,4 +59,5 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ role: 1, accountStatus: 1 });
+
 export default mongoose.model("User", userSchema);

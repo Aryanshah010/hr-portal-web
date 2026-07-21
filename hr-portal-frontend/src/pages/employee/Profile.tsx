@@ -127,7 +127,7 @@ export function Profile() {
     >
       <div
         style={{
-          maxWidth: "52rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",
@@ -492,8 +492,8 @@ export function Profile() {
                 )}
               </div>
 
-              {/* Employment meta (read-only from Employee record) */}
-              {profile && (
+              {/* Employment meta (read-only from Employee record) — only for employees */}
+              {profile && user?.role !== "HR" && (
                 <div
                   style={{
                     display: "grid",

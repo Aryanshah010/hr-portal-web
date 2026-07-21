@@ -7,8 +7,10 @@ import {
 } from "../services/oauthService.js";
 import * as authService from "../services/authService.js";
 import { issueCsrfToken } from "../middleware/csrf.js";
+import * as userRepo from "../repositories/userRepository.js";
 
 const secure = env.httpsEnabled;
+
 const flowCookie = (res, name, value, maxAge = 10 * 60 * 1000) =>
   res.cookie(name, value, {
     httpOnly: true,
@@ -17,6 +19,7 @@ const flowCookie = (res, name, value, maxAge = 10 * 60 * 1000) =>
     path: "/api/auth",
     maxAge,
   });
+
 const clearFlow = (res, name) =>
   res.clearCookie(name, {
     httpOnly: true,
@@ -24,6 +27,7 @@ const clearFlow = (res, name) =>
     sameSite: "lax",
     path: "/api/auth",
   });
+
 const setSession = (res, session) => {
   res.cookie("access_token", session.accessToken, {
     httpOnly: true,
@@ -32,6 +36,7 @@ const setSession = (res, session) => {
     path: "/",
     maxAge: 30 * 86400000,
   });
+
   res.cookie("refresh_token", session.refreshToken, {
     httpOnly: true,
     secure,
@@ -40,6 +45,7 @@ const setSession = (res, session) => {
     maxAge: 7 * 86400000,
   });
 };
+
 const clearSession = (res) => {
   res.clearCookie("access_token", {
     httpOnly: true,
@@ -54,16 +60,32 @@ const clearSession = (res) => {
     path: "/api/auth/refresh",
   });
 };
+
 const redirect = (res, path) => res.redirect(`${env.frontendUrl}${path}`);
+
 const flowFromCookie = (req, name) => req.cookies?.[name];
 
 export const csrf = (req, res) =>
   res.json({ status: "success", data: { token: issueCsrfToken(req, res) } });
+
+export const hrContact = async (req, res, next) => {
+  try {
+    const hr = await userRepo.findFirstHr();
+    res.json({
+      status: "success",
+      data: { email: hr?.email ?? null, name: hr?.name ?? null },
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const googleStart = (req, res) => {
   const state = createState();
   flowCookie(res, "oauth_state", state.value, 5 * 60 * 1000);
   res.redirect(authorizationUrl(state.signed));
 };
+
 export const googleCallback = async (req, res, next) => {
   try {
     const state = validState(req.query.state);
@@ -84,21 +106,21 @@ export const googleCallback = async (req, res, next) => {
       flowCookie(res, name, step.flowToken);
     }
     const target = {
-      REGISTRATION: "/register/complete",
+      REGISTRATION: "/register?oauth=true",
       PENDING_APPROVAL: "/login?status=pending",
       SUSPENDED: "/login?status=suspended",
-      MFA_ENROLMENT: "/mfa/setup",
-      MFA_CHALLENGE: "/mfa/verify",
+      MFA_ENROLMENT: "/mfa/setup?oauth=true",
+      MFA_CHALLENGE: "/mfa/verify?oauth=true",
     }[step.state];
     redirect(res, target);
   } catch (error) {
     next(error);
   }
 };
+
 export const login = async (req, res, next) => {
   try {
-    const { phone, password, captchaAnswer } = req.body;
-    const captchaToken = req.cookies.captcha_token;
+    const { phone, password, captchaAnswer, captchaToken } = req.body;
 
     const step = await authService.startPasswordLogin({
       phone,
@@ -112,8 +134,10 @@ export const login = async (req, res, next) => {
     next(e);
   }
 };
+
 export const sendPhone = async (req, res, next) => {
   try {
+    console.log("[DEBUG] req.cookies in sendPhone:", req.cookies);
     await authService.sendPhoneVerification({
       registrationToken: flowFromCookie(req, "registration_flow"),
       phone: req.body.phone,
@@ -125,6 +149,7 @@ export const sendPhone = async (req, res, next) => {
     next(e);
   }
 };
+
 export const verifyPhone = async (req, res, next) => {
   try {
     const user = await authService.verifyPhone({
@@ -136,6 +161,7 @@ export const verifyPhone = async (req, res, next) => {
     next(e);
   }
 };
+
 export const finishRegistration = async (req, res, next) => {
   try {
     const user = await authService.completeRegistration({
@@ -149,6 +175,7 @@ export const finishRegistration = async (req, res, next) => {
     next(e);
   }
 };
+
 export const setupMfa = async (req, res, next) => {
   try {
     res.json({
@@ -159,6 +186,7 @@ export const setupMfa = async (req, res, next) => {
     next(e);
   }
 };
+
 export const confirmMfa = async (req, res, next) => {
   try {
     const session = await authService.confirmMfa({
@@ -173,6 +201,7 @@ export const confirmMfa = async (req, res, next) => {
     next(e);
   }
 };
+
 export const verifyMfa = async (req, res, next) => {
   try {
     const session = await authService.verifyTotp({
@@ -187,6 +216,7 @@ export const verifyMfa = async (req, res, next) => {
     next(e);
   }
 };
+
 export const sendRecovery = async (req, res, next) => {
   try {
     await authService.sendRecoverySms({
@@ -197,6 +227,7 @@ export const sendRecovery = async (req, res, next) => {
     next(e);
   }
 };
+
 export const verifyRecovery = async (req, res, next) => {
   try {
     const session = await authService.verifyRecoverySms({
@@ -211,6 +242,7 @@ export const verifyRecovery = async (req, res, next) => {
     next(e);
   }
 };
+
 export const refresh = async (req, res, next) => {
   try {
     const session = await authService.refresh({
@@ -224,6 +256,7 @@ export const refresh = async (req, res, next) => {
     next(e);
   }
 };
+
 export const logout = async (req, res, next) => {
   try {
     await authService.logout(req.user.sessionId);
@@ -233,6 +266,7 @@ export const logout = async (req, res, next) => {
     next(e);
   }
 };
+
 export const me = async (req, res, next) => {
   try {
     res.json({

@@ -18,14 +18,7 @@ export const getCaptcha = (req, res) => {
     color: true,
   });
 
-  const encryptedToken = encryptCaptcha(captcha.text);
+  const token = encryptCaptcha(captcha.text);
 
-  res.cookie("captcha_token", encryptedToken, {
-    httpOnly: true,
-    secure: env.isProduction,
-    sameSite: "strict",
-    maxAge: 5 * 60 * 1000, // 5 minutes
-  });
-
-  res.type("svg").status(200).send(captcha.data);
+  res.json({ status: "success", data: { token, svg: captcha.data } });
 };

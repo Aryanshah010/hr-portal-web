@@ -3,6 +3,7 @@ import Attendance from "../models/Attendance.js";
 import PayrollRun from "../models/PayrollRun.js";
 import User, { ROLES, ACCOUNT_STATUS } from "../models/User.js";
 import { averageRating } from "./reviewRepository.js";
+
 export const getStats = async () => {
   const [activeEmployees, pendingAttendance, latestPayroll, hrCount, ratings] =
     await Promise.all([

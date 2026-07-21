@@ -86,7 +86,7 @@ export function Payslips() {
     >
       <div
         style={{
-          maxWidth: "48rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",

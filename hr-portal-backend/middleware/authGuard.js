@@ -36,7 +36,6 @@ export const protect = async (req, res, next) => {
         .status(401)
         .json({ status: "fail", message: "Session invalid or expired." });
 
-    // Session binding: verify User-Agent hash
     const currentUah = uaHash(req.get("user-agent"));
     if (decoded.uah && decoded.uah !== currentUah)
       return res.status(401).json({
@@ -44,7 +43,6 @@ export const protect = async (req, res, next) => {
         message: "Session device mismatch. Please sign in again.",
       });
 
-    // Password expiry check (Rubric 3.1)
     if (user.passwordChangedAt) {
       const expiryDate = new Date(user.passwordChangedAt);
       expiryDate.setDate(expiryDate.getDate() + PASSWORD_EXPIRY_DAYS);

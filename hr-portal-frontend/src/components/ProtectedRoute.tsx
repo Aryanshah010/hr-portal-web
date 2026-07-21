@@ -74,7 +74,8 @@ export function ProtectedRoute({
     if (isAuthenticated) {
       const params = new URLSearchParams(location.search);
       const next = params.get("redirect");
-      return <Navigate to={next ?? fallback} replace />;
+      const defaultRoute = user?.role === "HR" ? "/admin/dashboard" : fallback;
+      return <Navigate to={next ?? defaultRoute} replace />;
     }
     return <>{children}</>;
   }

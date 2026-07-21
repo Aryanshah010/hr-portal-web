@@ -8,6 +8,7 @@ import { getCaptcha } from "../controllers/captchaController.js";
 
 const router = express.Router();
 router.get("/csrf", controller.csrf);
+router.get("/hr-contact", controller.hrContact);
 router.get("/oauth/google", authLimiter, controller.googleStart);
 router.get("/oauth/callback", authLimiter, controller.googleCallback);
 router.use(csrfProtection);

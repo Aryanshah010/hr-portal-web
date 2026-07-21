@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import apiClient from "@/services/apiClient.js";
 
 interface CaptchaProps {
@@ -12,21 +12,28 @@ const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const onTokenRef = useRef(onToken);
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
+
   const fetchCaptcha = useCallback(async () => {
     setLoading(true);
     setValue("");
     try {
-      const res = await apiClient.get("/auth/captcha", {
-        responseType: "text",
-      });
-      setSvg(res.data);
-      onToken("__cookie__");
+
+      const res = await apiClient.get<{
+        status: string;
+        data: { token: string; svg: string };
+      }>("/auth/captcha");
+      setSvg(res.data.data.svg);
+      onTokenRef.current(res.data.data.token);
     } catch {
       setSvg("<svg></svg>");
     } finally {
       setLoading(false);
     }
-  }, [onToken]);
+  }, []);
 
   useEffect(() => {
     fetchCaptcha();

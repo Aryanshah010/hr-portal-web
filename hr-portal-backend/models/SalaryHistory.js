@@ -43,4 +43,5 @@ const salaryHistorySchema = new mongoose.Schema(
 );
 
 salaryHistorySchema.index({ employeeId: 1, effectiveDate: -1 });
+
 export default mongoose.model("SalaryHistory", salaryHistorySchema);

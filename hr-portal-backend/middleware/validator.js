@@ -1,5 +1,7 @@
 import { z } from "zod";
+
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid identifier.");
+
 const safe = (min, max) =>
   z
     .string()
@@ -10,6 +12,7 @@ const safe = (min, max) =>
       (v) => !/[\u0000$]/.test(v) && !/^\s*[\[{]/.test(v),
       "Invalid characters.",
     );
+
 const page = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
@@ -36,6 +39,8 @@ export const schemas = {
         .string()
         .regex(/^\+[1-9]\d{7,14}$/, "Use an E.164 phone number."),
       password: z.string().min(1).max(256),
+      captchaToken: z.string().optional(),
+      captchaAnswer: z.string().optional(),
     })
     .strict(),
   registration: z
@@ -175,6 +180,7 @@ export const schemas = {
   reviewListQuery: page.strict(),
   emptyBody: z.object({}).strict(),
 };
+
 export const validateRequest =
   (schema, source = "body") =>
   (req, res, next) => {

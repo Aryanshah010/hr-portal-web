@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext.js";
 import type { Role } from "@/types/index.js";
 
-function AccessDeniedFallback() {
+function AccessDeniedFallback({ role }: { role?: string }) {
+  const dashboardLink = role === "HR" ? "/admin/dashboard" : "/dashboard";
   return (
     <div
       role="alert"
@@ -26,7 +27,6 @@ function AccessDeniedFallback() {
           gap: "1rem",
         }}
       >
-        {/* Shield / lock icon */}
         <svg
           aria-hidden="true"
           width="56"
@@ -68,7 +68,7 @@ function AccessDeniedFallback() {
         </div>
 
         <a
-          href="/dashboard"
+          href={dashboardLink}
           style={{
             marginTop: "0.5rem",
             padding: "0.5rem 1.25rem",
@@ -117,7 +117,7 @@ export function RoleGuard({
     return null;
   }
 
-  return <>{fallback ?? <AccessDeniedFallback />}</>;
+  return <>{fallback ?? <AccessDeniedFallback role={role || undefined} />}</>;
 }
 
 export default RoleGuard;

@@ -52,7 +52,7 @@ export function AuditLogViewer() {
     <div
       style={{
         padding: "2rem",
-        maxWidth: "72rem",
+        maxWidth: "90rem",
         margin: "0 auto",
         display: "flex",
         flexDirection: "column",
