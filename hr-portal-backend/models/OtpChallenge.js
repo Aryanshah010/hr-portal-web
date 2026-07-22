@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const otpChallengeSchema = new mongoose.Schema(
   {
     userId: {
@@ -19,6 +20,8 @@ const otpChallengeSchema = new mongoose.Schema(
   },
   { strict: true, timestamps: true, versionKey: false },
 );
+
 otpChallengeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 otpChallengeSchema.index({ userId: 1, purpose: 1, createdAt: -1 });
+
 export default mongoose.model("OtpChallenge", otpChallengeSchema);

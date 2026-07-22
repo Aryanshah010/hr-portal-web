@@ -1,19 +1,9 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// types/index.ts
-// Single source of truth for all shared TypeScript types.
-// Mirrors backend Mongoose models exactly — keep in sync with /hr-portal-backend/models/*.js
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─── Enums & Constants ───────────────────────────────────────────────────────
-
-/** Mirrors ROLES in models/User.js */
 export const Role = {
   Employee: "Employee",
   HR: "HR",
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 
-/** Mirrors ACCOUNT_STATUS in models/User.js */
 export const AccountStatus = {
   Registration: "REGISTRATION",
   Pending: "PENDING_APPROVAL",
@@ -22,7 +12,6 @@ export const AccountStatus = {
 } as const;
 export type AccountStatus = (typeof AccountStatus)[keyof typeof AccountStatus];
 
-/** Mirrors AUDIT_SEVERITY in models/AuditLog.js */
 export const AuditSeverity = {
   Low: "LOW",
   Medium: "MEDIUM",
@@ -31,7 +20,6 @@ export const AuditSeverity = {
 } as const;
 export type AuditSeverity = (typeof AuditSeverity)[keyof typeof AuditSeverity];
 
-/** Mirrors AUDIT_EVENTS in models/AuditLog.js */
 export type AuditEventType =
   | "AUTH_LOGIN_SUCCESS"
   | "AUTH_LOGIN_FAILURE"
@@ -70,13 +58,6 @@ export type AuditEventType =
   | "SYSTEM_STARTUP"
   | "SYSTEM_ERROR";
 
-// ─── Domain Models ────────────────────────────────────────────────────────────
-
-/**
- * Mirrors models/User.js
- * Note: sensitive server-side fields (passwordHash, mfaSecretEncrypted,
- * googleId, phoneEncrypted, phoneLookupHash) are never sent to clients.
- */
 export interface User {
   _id: string;
   email: string;
@@ -88,53 +69,46 @@ export interface User {
   phoneVerified: boolean;
   mfaEnabled: boolean;
   securityVersion: number;
-  tokenInvalidatedAt: string | null; // ISO 8601
+  tokenInvalidatedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  avatarUrl?: string;
 }
 
-/**
- * Mirrors models/Employee.js
- * Encrypted fields (nationalIdEncrypted, bankAccountEncrypted,
- * baseSalaryEncrypted) are never returned to clients.
- */
 export interface Employee {
   _id: string;
   userId: string;
   name: string;
+  avatarUrl?: string;
   email: string;
   department: string | null;
   jobTitle: string | null;
   employmentType: "Regular" | "PartTime" | "Contract";
-  joinedAt: string; // ISO 8601
+  joinedAt: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Mirrors models/Attendance.js */
 export interface Attendance {
   _id: string;
   employeeId: string;
   requestedBy: string;
   recordType: "ATTENDANCE" | "LEAVE";
-  attendanceDate: string; // ISO 8601
+  attendanceDate: string;
   checkInAt: string | null;
   checkOutAt: string | null;
   leaveType: "ANNUAL" | "SICK" | "UNPAID" | "OTHER" | null;
-  /** encryptedReason is select:false — never sent to the client */
   status: "PENDING" | "APPROVED" | "REJECTED";
   decidedBy: string | null;
   decidedAt: string | null;
-  /** encryptedDecisionComment is select:false — never sent to the client */
   createdAt: string;
   updatedAt: string;
 }
 
-/** Mirrors models/PayrollRun.js */
 export interface PayrollRun {
   _id: string;
-  period: string; // "YYYY-MM"
+  period: string;
   status:
     | "DRAFT"
     | "PENDING_APPROVAL"
@@ -155,12 +129,10 @@ export interface PayrollRun {
   executionStartedAt: string | null;
   completedAt: string | null;
   failureReason: string | null;
-  /** encryptedChecksum is select:false — never sent to the client */
   createdAt: string;
   updatedAt: string;
 }
 
-/** Mirrors models/Payslip.js */
 export interface Payslip {
   _id: string;
   payrollRunId: string;
@@ -169,7 +141,6 @@ export interface Payslip {
   taxNPR: number;
   deductionsNPR: number;
   netNPR: number;
-  /** encryptedPayload is select:false — never sent to the client */
   payoutStatus: "PENDING" | "COMPLETED" | "FAILED";
   transactionId: string | null;
   generatedBy: string;
@@ -178,19 +149,16 @@ export interface Payslip {
   updatedAt: string;
 }
 
-/** Mirrors models/PerformanceReview.js */
 export interface PerformanceReview {
   _id: string;
   employeeId: string;
-  period: string; // "YYYY-MM"
-  rating: number; // 1–5
-  /** encryptedComment is select:false — never sent to the client */
+  period: string;
+  rating: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Mirrors models/Transaction.js */
 export interface Transaction {
   _id: string;
   employeeId: string;
@@ -200,7 +168,6 @@ export interface Transaction {
   type: "SALARY_DISBURSEMENT" | "PAYSLIP_PAYMENT" | "REFUND";
   status: "PENDING" | "COMPLETED" | "FAILED" | "ROLLED_BACK";
   amountNPR: number;
-  /** stripePaymentIntentId is select:false — never sent to the client */
   idempotencyKey: string;
   digitalSignature: string;
   signaturePublicKeyId: string;
@@ -210,7 +177,6 @@ export interface Transaction {
   updatedAt: string;
 }
 
-/** Mirrors models/AuditLog.js */
 export interface AuditLog {
   _id: string;
   eventType: AuditEventType;
@@ -221,15 +187,13 @@ export interface AuditLog {
   ipAddress: string;
   userAgent: string;
   metadata: Record<string, unknown>;
-  timestamp: string; // ISO 8601
+  timestamp: string;
 }
 
-/** Mirrors models/EmployeeDocument.js */
 export interface EmployeeDocument {
   _id: string;
   employeeId: string;
   type: "BANK_PROOF" | "NATIONAL_ID";
-  /** originalNameEncrypted is select:false — never sent to the client */
   storageName: string;
   mimeType: "application/pdf" | "image/jpeg" | "image/png";
   sha256: string;
@@ -240,32 +204,25 @@ export interface EmployeeDocument {
   updatedAt: string;
 }
 
-/** Mirrors models/SalaryHistory.js (supporting model) */
 export interface SalaryHistory {
   _id: string;
   employeeId: string;
-  /** oldBaseSalary / newBaseSalary are select:false encrypted values — never sent */
   effectiveDate: string;
   changedBy: string;
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── API Response Wrappers ────────────────────────────────────────────────────
-
-/** Backend success envelope: { status: "success", data: T } */
 export interface ApiResponse<T> {
   status: "success";
   data: T;
 }
 
-/** Backend message-only success envelope: { status: "success", message: string } */
 export interface ApiMessageResponse {
   status: "success";
   message: string;
 }
 
-/** Paginated list wrapper returned by list endpoints */
 export interface PaginatedResponse<T> {
   status: "success";
   data: {
@@ -277,29 +234,13 @@ export interface PaginatedResponse<T> {
   };
 }
 
-/**
- * Normalised client-side error shape.
- * The axios response interceptor in apiClient.ts always converts
- * backend error bodies into this shape so pages never render raw stack traces.
- */
 export interface ApiError {
-  /** HTTP status code */
   statusCode: number;
-  /** "fail" (4xx client error) | "error" (5xx server error) */
   status: "fail" | "error";
-  /** Human-readable message safe to display to the user */
   message: string;
-  /** true when the 401 interceptor has already redirected to /login */
   redirected?: boolean;
 }
 
-// ─── Auth-specific Types ──────────────────────────────────────────────────────
-
-/**
- * MFA challenge state returned by login / OAuth callback.
- * When nextStep === "MFA_CHALLENGE" the client must show the TOTP entry form.
- * When nextStep === "MFA_ENROLMENT" the client must show the QR setup flow.
- */
 export interface MfaChallenge {
   nextStep:
     | "MFA_CHALLENGE"
@@ -309,23 +250,14 @@ export interface MfaChallenge {
     | "SUSPENDED";
 }
 
-/** Shape of the /auth/mfa/setup response */
 export interface MfaSetupPayload {
   qrCodeUrl: string;
   secret: string;
 }
 
-/**
- * Global authentication state held in AuthContext.
- * Drives route guards, UI visibility, and session management.
- */
 export interface AuthState {
-  /** null while loading, undefined when unauthenticated */
   user: User | null | undefined;
-  /** true while the initial /auth/me check is in flight */
   loading: boolean;
-  /** true if a login attempt returned a nextStep that requires TOTP */
   mfaPending: boolean;
-  /** true if the user has completed MFA and holds an active session */
   isAuthenticated: boolean;
 }

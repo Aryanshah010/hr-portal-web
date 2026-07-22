@@ -1,9 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/employee/EmployeeDashboard.tsx
-//
-// Employee home screen. Shows a welcome, 4 navigation cards, recent attendance
-// and recent reviews. All data fetched from IDOR-safe endpoints (/me, /mine).
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext.js";
@@ -108,7 +102,7 @@ export function EmployeeDashboard() {
     >
       <div
         style={{
-          maxWidth: "64rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",

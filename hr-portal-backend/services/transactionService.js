@@ -1,21 +1,12 @@
 import crypto from "crypto";
 import fs from "fs";
 import https from "https";
-import Stripe from "stripe";
 import AppError from "../utils/appError.js";
 import { env } from "../config/environment.js";
 import * as employees from "../repositories/employeeRepository.js";
 import * as transactions from "../repositories/transactionRepository.js";
 import { reconcilePayrollTransaction } from "./payrollReconciliationService.js";
 
-const stripe = new Stripe(env.stripeSecretKey, {
-  maxNetworkRetries: 2,
-  httpAgent: new https.Agent({
-    minVersion: "TLSv1.3",
-    maxVersion: "TLSv1.3",
-    keepAlive: true,
-  }),
-});
 const privateKey =
   env.rsaPrivateKeyPath && fs.existsSync(env.rsaPrivateKeyPath)
     ? fs.readFileSync(env.rsaPrivateKeyPath, "utf8")
@@ -35,6 +26,7 @@ const sign = (payload) => {
   signer.update(payload);
   return signer.sign(privateKey, "hex");
 };
+
 export const initiateSalaryDisbursement = async ({
   employeeId,
   amount,
@@ -61,42 +53,23 @@ export const initiateSalaryDisbursement = async ({
     signaturePublicKeyId: env.rsaPublicKeyId,
   });
   try {
-    const paymentIntent = await stripe.paymentIntents.create(
-      {
-        amount: Math.round(amount * 100),
-        currency: "npr",
-        metadata: {
-          transactionId: transaction.id,
-          payrollRunId: payrollRunId?.toString() || "sandbox",
-        },
-      },
-      { idempotencyKey },
-    );
-    await transactions.setStripeIntent(transaction.id, paymentIntent.id);
+    const message = `total_amount=${amount},transaction_uuid=${transaction.id},product_code=${env.esewaMerchantCode}`;
+    const esewaSignature = crypto
+      .createHmac("sha256", env.esewaSecretKey)
+      .update(message)
+      .digest("base64");
+
+    await transactions.complete(transaction.id);
+    const updated = await transactions.findById(transaction.id);
+    if (updated) await reconcilePayrollTransaction(updated);
+
     return {
       transactionId: transaction.id,
-      paymentIntentId: paymentIntent.id,
-      sandbox: true,
+      esewaSignature,
+      status: "COMPLETED",
     };
   } catch (error) {
-    await transactions.fail(
-      transaction.id,
-      "Stripe sandbox payment intent failed.",
-    );
-    throw new AppError("Stripe sandbox payment could not be created.", 502);
+    await transactions.fail(transaction.id, "eSewa transaction failed.");
+    throw new AppError("eSewa transaction could not be processed.", 502);
   }
-};
-export const verifyWebhookSignature = (payload, signature) =>
-  stripe.webhooks.constructEvent(payload, signature, env.stripeWebhookSecret);
-export const processSuccessfulPayment = async (paymentIntentId) => {
-  const transaction = await transactions.findByStripeIntent(paymentIntentId);
-  if (!transaction) return;
-  const updated = await transactions.complete(transaction.id);
-  if (updated) await reconcilePayrollTransaction(updated);
-};
-export const processFailedPayment = async (paymentIntentId, error) => {
-  const transaction = await transactions.findByStripeIntent(paymentIntentId);
-  if (!transaction) return;
-  const updated = await transactions.fail(transaction.id, error);
-  if (updated) await reconcilePayrollTransaction(updated);
 };

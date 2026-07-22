@@ -1,8 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/employee/Reviews.tsx
-// Employee's own performance reviews — read-only view.
-// Calls GET /api/reviews/mine — returns { data: { reviews: PerformanceReview[] } }
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { getMyReviews } from "@/services/reviewService.js";
 import type { PerformanceReview } from "@/types/index.js";
@@ -10,7 +5,6 @@ import type { ApiError } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
 import { Star, TrendingUp, Loader2 } from "lucide-react";
 
-// ─── Star Rating Display ──────────────────────────────────────────────────────
 function StarRating({ rating }: { rating: number }) {
   return (
     <div style={{ display: "flex", gap: "0.2rem", alignItems: "center" }}>
@@ -76,7 +70,7 @@ export function Reviews() {
         padding: "2rem",
       }}
     >
-      <div style={{ maxWidth: "56rem", margin: "0 auto" }}>
+      <div style={{ maxWidth: "90rem", margin: "0 auto" }}>
         {/* Header */}
         <div
           style={{

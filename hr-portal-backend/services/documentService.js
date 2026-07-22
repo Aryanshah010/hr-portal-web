@@ -15,6 +15,7 @@ import * as audit from "../repositories/auditRepository.js";
 
 const storagePath = path.resolve(env.documentStoragePath);
 const filePath = (name) => path.join(storagePath, name);
+
 export const upload = async ({ userId, type, file, req }) => {
   const employee = await employees.findByUserId(userId);
   if (!employee) throw new AppError("Employee profile not found.", 404);
@@ -52,12 +53,15 @@ export const upload = async ({ userId, type, file, req }) => {
     throw error;
   }
 };
+
 export const mine = async (userId) => {
   const employee = await employees.findByUserId(userId);
   if (!employee) throw new AppError("Employee profile not found.", 404);
   return documents.listForEmployee(employee.id);
 };
+
 export const pending = (query) => documents.listPending(query);
+
 export const decide = async ({ id, status, hrId, req }) => {
   const document = await documents.review(id, status, hrId);
   if (!document) throw new AppError("Pending document not found.", 404);
@@ -71,6 +75,7 @@ export const decide = async ({ id, status, hrId, req }) => {
   });
   return document;
 };
+
 export const download = async ({ id, userId, isHr, req }) => {
   const document = await documents.findById(id, "+originalNameEncrypted");
   if (!document) throw new AppError("Document not found.", 404);

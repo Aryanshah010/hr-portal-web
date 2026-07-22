@@ -1,19 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// components/employee/AvatarUpload.tsx
-//
-// URL-based avatar component. User pastes an external image URL; we validate
-// it client-side (HTTPS-only, no private/RFC-1918 hosts) and show a preview.
-//
-// Security note: There is no avatar API endpoint on this backend. If one
-// existed, the backend's ssrfValidator middleware would re-validate the URL
-// server-side before any fetch, blocking SSRF attempts at /169.254.x.x,
-// /10.x, /192.168.x, /127.x etc.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState } from "react";
 import { Image, AlertCircle, CheckCircle2, User } from "lucide-react";
-
-// ─── Validation ───────────────────────────────────────────────────────────────
 
 const PRIVATE_IP_PATTERNS = [
   /^localhost$/i,
@@ -21,10 +7,10 @@ const PRIVATE_IP_PATTERNS = [
   /^10\./,
   /^192\.168\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
-  /^169\.254\./, // link-local / AWS metadata
+  /^169\.254\./,
   /^0\./,
   /^::1$/,
-  /^fd[0-9a-f]{2}:/i, // ULA IPv6
+  /^fd[0-9a-f]{2}:/i,
   /^\[::1\]$/,
 ];
 
@@ -47,16 +33,11 @@ function validateAvatarUrl(raw: string): string | null {
     }
   }
 
-  // Very basic: allow any path — the <img> will simply fail to load if not an image
   return null;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 interface AvatarUploadProps {
-  /** Current avatar URL (controlled externally if needed) */
   value?: string;
-  /** Called when a valid URL is set */
   onChange?: (url: string) => void;
 }
 
@@ -89,7 +70,6 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      {/* Preview circle */}
       <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
         <div
           style={{
@@ -140,7 +120,6 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
         </div>
       </div>
 
-      {/* URL input */}
       <div>
         <div style={{ position: "relative" }}>
           <div

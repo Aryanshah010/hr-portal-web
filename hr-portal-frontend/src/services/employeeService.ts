@@ -1,14 +1,5 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// services/employeeService.ts
-// Covers routes in /hr-portal-backend/routes/employeeRoutes.js
-//
-// Route prefix: /api  (employee routes mount at /api, not /api/employees)
-// ─────────────────────────────────────────────────────────────────────────────
-
 import apiClient from "./apiClient.js";
 import type { ApiResponse, PaginatedResponse, Employee, User } from "@/types";
-
-// ─── Query / Request shapes ───────────────────────────────────────────────────
 
 export interface EmployeeListQuery {
   page?: number;
@@ -25,22 +16,14 @@ export interface ProfileUpdateRequest {
 }
 
 export interface SalaryUpdateRequest {
-  /** New base salary in NPR. The backend encrypts this before persisting. */
   baseSalaryNPR: number;
-  effectiveDate?: string; // ISO 8601
+  effectiveDate?: string;
 }
 
 export interface RoleChangeRequest {
   role: "Employee" | "HR";
 }
 
-// ─── Employee Service ─────────────────────────────────────────────────────────
-
-/**
- * GET /api/me/profile
- * Returns the authenticated employee's own profile.
- * Available to all authenticated users (Employee + HR).
- */
 export const getMyProfile = async (): Promise<
   ApiResponse<{ profile: Employee }>
 > => {
@@ -49,11 +32,6 @@ export const getMyProfile = async (): Promise<
   return res.data;
 };
 
-/**
- * PATCH /api/me/profile
- * Updates the authenticated user's own profile (name, jobTitle, department).
- * Requires CSRF token.
- */
 export const updateMyProfile = async (
   body: ProfileUpdateRequest,
 ): Promise<ApiResponse<{ profile: Employee }>> => {
@@ -64,19 +42,10 @@ export const updateMyProfile = async (
   return res.data;
 };
 
-/**
- * DELETE /api/me
- * Soft-deactivates the authenticated user's own account.
- * Requires CSRF token.
- */
 export const deactivateMe = async (): Promise<void> => {
   await apiClient.delete("/me");
 };
 
-/**
- * GET /api/employees  [HR only]
- * Returns a paginated list of all employees.
- */
 export const listEmployees = async (
   query: EmployeeListQuery = {},
 ): Promise<PaginatedResponse<Employee>> => {
@@ -86,10 +55,6 @@ export const listEmployees = async (
   return res.data;
 };
 
-/**
- * GET /api/employees/pending  [HR only]
- * Returns users with PENDING_APPROVAL status awaiting HR approval.
- */
 export const listPendingEmployees = async (query?: {
   page?: number;
   limit?: number;
@@ -101,11 +66,6 @@ export const listPendingEmployees = async (query?: {
   return res.data;
 };
 
-/**
- * POST /api/employees/:id/approve  [HR only]
- * Approves a pending employee, setting their accountStatus to ACTIVE.
- * Requires CSRF token.
- */
 export const approveEmployee = async (
   id: string,
 ): Promise<ApiResponse<{ user: User }>> => {
@@ -115,11 +75,10 @@ export const approveEmployee = async (
   return res.data;
 };
 
-/**
- * PATCH /api/employees/:id/salary  [HR only]
- * Updates an employee's base salary.
- * Requires CSRF token.
- */
+export const deleteEmployee = async (id: string): Promise<void> => {
+  await apiClient.delete(`/employees/${id}`);
+};
+
 export const updateEmployeeSalary = async (
   id: string,
   body: SalaryUpdateRequest,
@@ -131,11 +90,6 @@ export const updateEmployeeSalary = async (
   return res.data;
 };
 
-/**
- * PATCH /api/employees/:id/role  [HR only]
- * Changes an employee's role between Employee and HR.
- * Requires CSRF token.
- */
 export const changeEmployeeRole = async (
   id: string,
   body: RoleChangeRequest,
@@ -147,10 +101,6 @@ export const changeEmployeeRole = async (
   return res.data;
 };
 
-/**
- * GET /api/hr  [HR only]
- * Returns a list of all HR users.
- */
 export const listHrUsers = async (): Promise<
   ApiResponse<{ users: User[] }>
 > => {

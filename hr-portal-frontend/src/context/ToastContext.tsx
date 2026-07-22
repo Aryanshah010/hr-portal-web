@@ -1,16 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// context/ToastContext.tsx
-//
-// Global toast / notification system.
-// Provides useToast() hook for displaying success/error/warning/info messages
-// from any component without prop-drilling.
-//
-// Usage:
-//   const { toast } = useToast();
-//   toast.success("Employee approved.");
-//   toast.error("Failed to submit attendance.");
-// ─────────────────────────────────────────────────────────────────────────────
-
 import {
   createContext,
   useCallback,
@@ -20,8 +7,6 @@ import {
   type ReactNode,
 } from "react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type ToastVariant = "success" | "error" | "warning" | "info";
 
 export interface ToastItem {
@@ -29,7 +14,6 @@ export interface ToastItem {
   variant: ToastVariant;
   title?: string;
   message: string;
-  /** Duration in ms before auto-dismiss. Pass 0 to disable auto-dismiss. */
   duration: number;
 }
 
@@ -54,8 +38,6 @@ interface ToastContextValue {
   dismissAll: () => void;
 }
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
-
 const DEFAULT_DURATION: Record<ToastVariant, number> = {
   success: 4000,
   error: 6000,
@@ -63,12 +45,9 @@ const DEFAULT_DURATION: Record<ToastVariant, number> = {
   info: 4000,
 };
 
-// ─── Reducer ─────────────────────────────────────────────────────────────────
-
 function toastReducer(state: ToastItem[], action: ToastAction): ToastItem[] {
   switch (action.type) {
     case "ADD":
-      // Prevent exact duplicate messages from stacking.
       if (state.some((t) => t.message === action.payload.message)) return state;
       return [...state, action.payload];
     case "REMOVE":
@@ -80,15 +59,10 @@ function toastReducer(state: ToastItem[], action: ToastAction): ToastItem[] {
   }
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
-
 const ToastContext = createContext<ToastContextValue | null>(null);
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, dispatch] = useReducer(toastReducer, []);
-  // useId generates a stable base; individual toasts append a counter.
   const baseId = useId();
   let counter = 0;
 
@@ -140,12 +114,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
-/**
- * useToast() — returns toast helpers and the current toast list.
- * Must be used inside <ToastProvider>.
- */
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {

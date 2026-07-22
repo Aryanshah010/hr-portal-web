@@ -1,5 +1,6 @@
 import * as transactions from "../repositories/transactionRepository.js";
 import * as payroll from "../repositories/payrollRepository.js";
+
 export const reconcilePayrollTransaction = async (transaction) => {
   if (!transaction?.payrollRunId || !transaction.payslipId) return;
   await payroll.updatePayslipPayout(
@@ -13,6 +14,6 @@ export const reconcilePayrollTransaction = async (transaction) => {
     rows.every((row) => row.status === "COMPLETED") ? "COMPLETED" : "FAILED",
     rows.every((row) => row.status === "COMPLETED")
       ? null
-      : "One or more Stripe sandbox payments failed.",
+      : "One or more eSewa payments failed.",
   );
 };

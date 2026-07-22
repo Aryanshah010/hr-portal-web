@@ -1,7 +1,15 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { env } from "../config/environment.js";
 
-export const generateAccessToken = ({ user, sessionId }) =>
+const uaHash = (ua) =>
+  crypto
+    .createHash("sha256")
+    .update(ua || "")
+    .digest("hex")
+    .slice(0, 16);
+
+export const generateAccessToken = ({ user, sessionId, userAgent }) =>
   jwt.sign(
     {
       sub: user.id || user._id.toString(),
@@ -9,10 +17,13 @@ export const generateAccessToken = ({ user, sessionId }) =>
       sid: sessionId,
       mfaVerified: true,
       sv: user.securityVersion,
+      uah: uaHash(userAgent),
     },
     env.jwtSecret,
     { expiresIn: "30d", issuer: "secure-hr-portal", audience: "secure-hr-web" },
   );
+
+export { uaHash };
 
 export const signFlowToken = (payload, expiresIn = "30d") =>
   jwt.sign(payload, env.flowSecret, {

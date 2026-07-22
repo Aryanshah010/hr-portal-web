@@ -20,4 +20,5 @@ const reviewSchema = new mongoose.Schema(
 );
 reviewSchema.index({ employeeId: 1, period: 1 }, { unique: true });
 reviewSchema.index({ period: -1, rating: 1 });
+
 export default mongoose.model("PerformanceReview", reviewSchema);

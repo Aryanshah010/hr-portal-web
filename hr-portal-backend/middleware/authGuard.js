@@ -3,6 +3,9 @@ import { env } from "../config/environment.js";
 import * as authRepository from "../repositories/authRepository.js";
 import * as userRepository from "../repositories/userRepository.js";
 import { ACCOUNT_STATUS } from "../models/User.js";
+import { uaHash } from "../utils/generateToken.js";
+
+const PASSWORD_EXPIRY_DAYS = 90;
 
 export const protect = async (req, res, next) => {
   try {
@@ -32,6 +35,24 @@ export const protect = async (req, res, next) => {
       return res
         .status(401)
         .json({ status: "fail", message: "Session invalid or expired." });
+
+    const currentUah = uaHash(req.get("user-agent"));
+    if (decoded.uah && decoded.uah !== currentUah)
+      return res.status(401).json({
+        status: "fail",
+        message: "Session device mismatch. Please sign in again.",
+      });
+
+    if (user.passwordChangedAt) {
+      const expiryDate = new Date(user.passwordChangedAt);
+      expiryDate.setDate(expiryDate.getDate() + PASSWORD_EXPIRY_DAYS);
+      if (new Date() > expiryDate)
+        return res.status(403).json({
+          status: "fail",
+          message: "Password expired. Please reset your password.",
+          code: "PASSWORD_EXPIRED",
+        });
+    }
     req.user = {
       id: user.id,
       role: user.role,
@@ -50,9 +71,7 @@ export const restrictTo =
   (req, res, next) =>
     roles.includes(req.user?.role)
       ? next()
-      : res
-          .status(403)
-          .json({
-            status: "fail",
-            message: "You do not have permission to perform this action.",
-          });
+      : res.status(403).json({
+          status: "fail",
+          message: "You do not have permission to perform this action.",
+        });

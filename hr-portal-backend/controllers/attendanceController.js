@@ -16,15 +16,13 @@ export const submitAttendance = async (req, res, next) => {
 
 export const getMyAttendance = async (req, res, next) => {
   try {
-    res
-      .status(200)
-      .json({
-        status: "success",
-        data: await attendanceService.listMine({
-          userId: req.user.id,
-          query: req.validated.query,
-        }),
-      });
+    res.status(200).json({
+      status: "success",
+      data: await attendanceService.listMine({
+        userId: req.user.id,
+        query: req.validated.query,
+      }),
+    });
   } catch (error) {
     next(error);
   }
@@ -32,14 +30,12 @@ export const getMyAttendance = async (req, res, next) => {
 
 export const getApprovalQueue = async (req, res, next) => {
   try {
-    res
-      .status(200)
-      .json({
-        status: "success",
-        data: await attendanceService.listForApproval({
-          query: req.validated.query,
-        }),
-      });
+    res.status(200).json({
+      status: "success",
+      data: await attendanceService.listForApproval({
+        query: req.validated.query,
+      }),
+    });
   } catch (error) {
     next(error);
   }

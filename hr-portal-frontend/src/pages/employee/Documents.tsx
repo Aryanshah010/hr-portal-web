@@ -1,13 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/employee/Documents.tsx
-// Upload and view own HR documents (BANK_PROOF | NATIONAL_ID).
-//
-// Backend constraints mirrored client-side (uploadValidator.js):
-//  - MIME: application/pdf | image/jpeg | image/png
-//  - Max file size enforced client-side at 5 MB (server also limits)
-//  - Field name must be "document" in the multipart form
-//  - Type must be BANK_PROOF | NATIONAL_ID
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
 import {
   uploadDocument,
@@ -82,7 +72,7 @@ export function Documents() {
 
   useEffect(() => {
     fetchDocs();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -147,7 +137,7 @@ export function Documents() {
     >
       <div
         style={{
-          maxWidth: "56rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",

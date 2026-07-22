@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const documentSchema = new mongoose.Schema(
   {
     employeeId: {
@@ -40,6 +41,8 @@ const documentSchema = new mongoose.Schema(
   },
   { strict: true, timestamps: true, versionKey: false },
 );
+
 documentSchema.index({ employeeId: 1, type: 1 }, { unique: true });
 documentSchema.index({ status: 1, createdAt: -1 });
+
 export default mongoose.model("EmployeeDocument", documentSchema);

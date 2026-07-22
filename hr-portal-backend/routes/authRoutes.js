@@ -4,11 +4,17 @@ import { csrfProtection } from "../middleware/csrf.js";
 import { protect } from "../middleware/authGuard.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
 import * as controller from "../controllers/authController.js";
+import { getCaptcha } from "../controllers/captchaController.js";
+
 const router = express.Router();
 router.get("/csrf", controller.csrf);
+router.get("/hr-contact", controller.hrContact);
 router.get("/oauth/google", authLimiter, controller.googleStart);
 router.get("/oauth/callback", authLimiter, controller.googleCallback);
 router.use(csrfProtection);
+
+router.get("/captcha", getCaptcha);
+
 router.post(
   "/login",
   authLimiter,

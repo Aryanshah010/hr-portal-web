@@ -1,14 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// pages/employee/Payslips.tsx
-//
-// Payslip lookup for employees.
-// There is NO list endpoint for employees — the payroll list is HR-only.
-// Backend endpoint: GET /api/payroll/runs/:runId/payslips/:employeeId
-// Employees can only retrieve their own payslip for a known run ID.
-//
-// Flow: on mount, fetch /me/profile to get the employee _id.
-//       Employee pastes a Payroll Run ID → fetch their payslip for that run.
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { getMyProfile } from "@/services/employeeService.js";
 import { getPayslip } from "@/services/payrollService.js";
@@ -97,7 +86,7 @@ export function Payslips() {
     >
       <div
         style={{
-          maxWidth: "48rem",
+          maxWidth: "90rem",
           margin: "0 auto",
           display: "flex",
           flexDirection: "column",

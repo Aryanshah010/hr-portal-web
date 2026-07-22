@@ -143,16 +143,13 @@ auditLogSchema.index({ ipAddress: 1, eventType: 1 });
 auditLogSchema.index({ severity: 1, timestamp: -1 });
 auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 63072000 });
 
-auditLogSchema.pre("save", function (next) {
+auditLogSchema.pre("save", function () {
   if (!this.isNew) {
-    return next(
-      new Error(
-        "[AuditLog] WRITE-ONCE VIOLATION: Audit log records are immutable. " +
-          "Modification of existing audit entries is strictly forbidden.",
-      ),
+    throw new Error(
+      "[AuditLog] WRITE-ONCE VIOLATION: Audit log records are immutable. " +
+        "Modification of existing audit entries is strictly forbidden.",
     );
   }
-  next();
 });
 
 auditLogSchema.statics.record = async function ({

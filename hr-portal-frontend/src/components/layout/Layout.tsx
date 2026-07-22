@@ -23,7 +23,6 @@ export function Layout() {
       >
         <Navbar />
         <main style={{ flex: 1, overflowY: "auto" }}>
-          {/* We can use React Router's Outlet to render the current route */}
           <Outlet />
         </main>
       </div>

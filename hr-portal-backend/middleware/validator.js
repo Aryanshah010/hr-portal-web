@@ -1,5 +1,7 @@
 import { z } from "zod";
+
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid identifier.");
+
 const safe = (min, max) =>
   z
     .string()
@@ -10,6 +12,7 @@ const safe = (min, max) =>
       (v) => !/[\u0000$]/.test(v) && !/^\s*[\[{]/.test(v),
       "Invalid characters.",
     );
+
 const page = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
@@ -36,6 +39,8 @@ export const schemas = {
         .string()
         .regex(/^\+[1-9]\d{7,14}$/, "Use an E.164 phone number."),
       password: z.string().min(1).max(256),
+      captchaToken: z.string().optional(),
+      captchaAnswer: z.string().optional(),
     })
     .strict(),
   registration: z
@@ -51,7 +56,10 @@ export const schemas = {
         .regex(/[A-Z]/, "Password must contain an uppercase letter.")
         .regex(/\d/, "Password must contain a number.")
         .regex(/[^A-Za-z0-9\s]/, "Password must contain a symbol.")
-        .refine((value) => !/\s/.test(value), "Password cannot contain spaces."),
+        .refine(
+          (value) => !/\s/.test(value),
+          "Password cannot contain spaces.",
+        ),
     })
     .strict(),
   profile: z
@@ -167,23 +175,25 @@ export const schemas = {
         .optional(),
     })
     .strict(),
+  auditListQuery: page.strict(),
+  transactionListQuery: page.strict(),
+  reviewListQuery: page.strict(),
   emptyBody: z.object({}).strict(),
 };
+
 export const validateRequest =
   (schema, source = "body") =>
   (req, res, next) => {
     const result = schema.safeParse(req[source]);
     if (!result.success)
-      return res
-        .status(400)
-        .json({
-          status: "fail",
-          message: "Validation failed.",
-          errors: result.error.issues.map((issue) => ({
-            field: issue.path.join("."),
-            message: issue.message,
-          })),
-        });
+      return res.status(400).json({
+        status: "fail",
+        message: "Validation failed.",
+        errors: result.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
     if (source === "body") req.body = result.data;
     else req.validated = { ...(req.validated || {}), [source]: result.data };
     next();

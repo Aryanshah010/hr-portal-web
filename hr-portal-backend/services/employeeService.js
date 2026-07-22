@@ -25,6 +25,7 @@ const visibleProfile = (user, employee, includeSensitive = false) => ({
       : null,
   }),
 });
+
 export const myProfile = async (userId) => {
   const [user, employee] = await Promise.all([
     users.findById(userId),
@@ -37,6 +38,7 @@ export const myProfile = async (userId) => {
     throw new AppError("Employee profile not found.", 404);
   return visibleProfile(user, employee, true);
 };
+
 export const updateMyProfile = async ({ userId, input, req }) => {
   const employee = await employees.updateByUserId(userId, {
     name: input.name,
@@ -63,29 +65,29 @@ export const updateMyProfile = async ({ userId, input, req }) => {
   });
   return myProfile(userId);
 };
+
 export const listEmployees = async (query) => {
   const result = await employees.list(query);
   return {
-    ...result,
-    pagination: {
-      page: query.page,
-      limit: query.limit,
-      total: result.total,
-      totalPages: Math.ceil(result.total / query.limit),
-    },
+    items: result.employees,
+    total: result.total,
+    page: query.page,
+    pages: Math.ceil(result.total / query.limit),
   };
 };
+
 export const updateSalary = async ({ employeeId, baseSalary, hrId, req }) => {
   const employee = await employees.findById(employeeId, "+baseSalaryEncrypted");
   if (!employee) throw new AppError("Employee not found.", 404);
   const oldBaseSalary = employee.baseSalaryEncrypted || encrypt("0");
-  const updated = await employees.updateById(employeeId, {
-    baseSalaryEncrypted: encrypt(String(baseSalary)),
+  const newEncrypted = encrypt(String(baseSalary));
+  await employees.updateById(employeeId, {
+    baseSalaryEncrypted: newEncrypted,
   });
   await salary.createHistory({
     employeeId,
     oldBaseSalary,
-    newBaseSalary: updated.baseSalaryEncrypted,
+    newBaseSalary: newEncrypted,
     effectiveDate: new Date(),
     changedBy: hrId,
   });
@@ -98,6 +100,7 @@ export const updateSalary = async ({ employeeId, baseSalary, hrId, req }) => {
     metadata: { employeeId },
   });
 };
+
 export const deactivateSelf = async ({ userId, req }) => {
   await Promise.all([
     employees.deactivateByUserId(userId),
@@ -113,21 +116,45 @@ export const deactivateSelf = async ({ userId, req }) => {
     metadata: { softDelete: true },
   });
 };
+
+export const deleteEmployee = async ({ targetUserId, hrId, req }) => {
+  const target = await users.findById(targetUserId);
+  if (!target || target.accountStatus !== ACCOUNT_STATUS.ACTIVE)
+    throw new AppError("Active employee not found.", 404);
+  if (target.id === hrId)
+    throw new AppError("You cannot delete your own account.", 400);
+  if (target.role === ROLES.HR && (await users.countActiveHr()) <= 1)
+    throw new AppError("The final active HR account cannot be deleted.", 409);
+
+  await Promise.all([
+    employees.deactivateByUserId(targetUserId),
+    users.suspend(targetUserId),
+    auth.revokeUserSessions(targetUserId),
+  ]);
+
+  await audit.record({
+    eventType: "EMPLOYEE_DELETED",
+    severity: "HIGH",
+    req,
+    actorId: hrId,
+    actorRole: ROLES.HR,
+    metadata: { targetUserId, softDelete: true },
+  });
+};
+
 export const pendingEmployees = async (query) => {
-  const [records, total] = await Promise.all([
+  const [items, total] = await Promise.all([
     users.listPending(query),
     users.countPending(),
   ]);
   return {
-    records,
-    pagination: {
-      page: query.page,
-      limit: query.limit,
-      total,
-      totalPages: Math.ceil(total / query.limit),
-    },
+    items,
+    total,
+    page: query.page,
+    pages: Math.ceil(total / query.limit),
   };
 };
+
 export const changeRole = async ({ targetUserId, role, hrId, req }) => {
   const target = await users.findById(targetUserId);
   if (!target || target.accountStatus !== ACCOUNT_STATUS.ACTIVE)

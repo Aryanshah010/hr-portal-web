@@ -1,4 +1,5 @@
 import * as documents from "../services/documentService.js";
+
 export const upload = async (req, res, next) => {
   try {
     const document = await documents.upload({
@@ -12,26 +13,35 @@ export const upload = async (req, res, next) => {
     next(e);
   }
 };
+
 export const mine = async (req, res, next) => {
   try {
     res.json({
       status: "success",
-      data: { records: await documents.mine(req.user.id) },
+      data: { documents: await documents.mine(req.user.id) },
     });
   } catch (e) {
     next(e);
   }
 };
+
 export const pending = async (req, res, next) => {
   try {
+    const result = await documents.pending(req.validated.query);
     res.json({
       status: "success",
-      data: { records: await documents.pending(req.validated.query) },
+      data: {
+        items: result,
+        total: result.length,
+        page: req.validated.query.page || 1,
+        pages: 1,
+      },
     });
   } catch (e) {
     next(e);
   }
 };
+
 export const decide = async (req, res, next) => {
   try {
     res.json({
@@ -49,6 +59,7 @@ export const decide = async (req, res, next) => {
     next(e);
   }
 };
+
 export const download = async (req, res, next) => {
   try {
     const file = await documents.download({

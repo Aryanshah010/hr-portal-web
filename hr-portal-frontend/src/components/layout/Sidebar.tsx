@@ -8,7 +8,6 @@ import {
   CreditCard,
   Shield,
   LayoutDashboard,
-  Settings,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -31,12 +30,24 @@ export function Sidebar() {
   ];
 
   const adminLinks = [
+    {
+      to: "/admin/dashboard",
+      icon: <LayoutDashboard size={20} />,
+      label: "Dashboard",
+    },
+    { to: "/profile", icon: <User size={20} />, label: "Profile" },
     { to: "/admin/employees", icon: <User size={20} />, label: "Employees" },
+    { to: "/admin/payroll", icon: <CreditCard size={20} />, label: "Payroll" },
+    {
+      to: "/admin/transactions",
+      icon: <FileText size={20} />,
+      label: "Transactions",
+    },
+    { to: "/admin/reviews", icon: <Star size={20} />, label: "Reviews" },
     { to: "/admin/audit", icon: <Shield size={20} />, label: "Audit Logs" },
-    { to: "/admin/settings", icon: <Settings size={20} />, label: "Settings" },
   ];
 
-  const links = user.role === "HR" ? [...baseLinks, ...adminLinks] : baseLinks;
+  const links = user.role === "HR" ? adminLinks : baseLinks;
 
   return (
     <aside
@@ -71,10 +82,10 @@ export function Sidebar() {
             fontWeight: "bold",
           }}
         >
-          HR
+          N
         </div>
         <span style={{ fontSize: "1.1rem", fontWeight: 600, color: "white" }}>
-          Portal
+          NexusHR
         </span>
       </div>
 

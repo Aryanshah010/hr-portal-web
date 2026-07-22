@@ -1,13 +1,276 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthContext.js";
-import { startGoogleOAuth } from "@/services/authService.js";
+import { startGoogleOAuth, getHrContact } from "@/services/authService.js";
 import { useToast } from "@/context/ToastContext.js";
-import { LogIn, Phone, Lock, Loader2 } from "lucide-react";
+import { LogIn, Phone, Lock, Loader2, X, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ApiError } from "@/types/index.js";
+import Captcha from "@/components/Captcha.js";
+
+const HR_EMAIL_FALLBACK = "hr@yourcompany.com";
+
+function ForgotPasswordModal({
+  onClose,
+  hrEmail,
+}: {
+  onClose: () => void;
+  hrEmail: string;
+  hrName: string | null;
+}) {
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [hasEmailed, setHasEmailed] = useState(false);
+
+  const subject = encodeURIComponent("Password Reset Request");
+  const body = encodeURIComponent(
+    `Hello HR Team,\n\nI have forgotten my NexusHR password and would like to request a password reset.\n\nMy registered phone number: ${phone}\nMy name: ${name}\n\nPlease assist me at your earliest convenience.\n\nThank you.`,
+  );
+  const displayEmail = hrEmail || HR_EMAIL_FALLBACK;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.7)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1.5rem",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: "26rem",
+          background: "#1a1d27",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "1.25rem",
+          padding: "2rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.25rem",
+          boxShadow: "0 25px 50px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <div
+              style={{
+                width: "2.25rem",
+                height: "2.25rem",
+                borderRadius: "0.6rem",
+                background: "rgba(99,102,241,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-primary, #6366f1)",
+              }}
+            >
+              <Mail size={16} />
+            </div>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                color: "#f8fafc",
+              }}
+            >
+              Forgot Password?
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#94a3b8",
+              padding: "0.25rem",
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <p
+          style={{
+            margin: 0,
+            fontSize: "0.9rem",
+            color: "#94a3b8",
+            lineHeight: 1.6,
+          }}
+        >
+          Password resets are handled by your HR administrator. Click the button
+          below to send a pre-filled email to HR, or contact them directly.
+        </p>
+
+        <div
+          style={{
+            background: "rgba(99,102,241,0.08)",
+            border: "1px solid rgba(99,102,241,0.2)",
+            borderRadius: "0.75rem",
+            padding: "0.875rem 1rem",
+            fontSize: "0.85rem",
+            color: "#a5b4fc",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: "0.25rem" }}>
+            Steps to reset your password:
+          </strong>
+          <ol
+            style={{
+              margin: 0,
+              paddingLeft: "1.1rem",
+              lineHeight: 1.8,
+              color: "#94a3b8",
+            }}
+          >
+            <li>Fill in your name and registered phone number below</li>
+            <li>
+              Click <strong style={{ color: "#a5b4fc" }}>Email HR</strong>
+            </li>
+            <li>HR will verify your identity and reset your password</li>
+            <li>You will receive your new password via SMS</li>
+          </ol>
+        </div>
+
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
+        >
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.8rem",
+                color: "#94a3b8",
+                marginBottom: "0.25rem",
+              }}
+            >
+              Registered Phone Number
+            </label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1234567890"
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.8rem",
+                borderRadius: "0.5rem",
+                background: "rgba(0,0,0,0.25)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#fff",
+                fontSize: "0.9rem",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.8rem",
+                color: "#94a3b8",
+                marginBottom: "0.25rem",
+              }}
+            >
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+              style={{
+                width: "100%",
+                padding: "0.6rem 0.8rem",
+                borderRadius: "0.5rem",
+                background: "rgba(0,0,0,0.25)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#fff",
+                fontSize: "0.9rem",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        </div>
+
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}
+        >
+          <a
+            href={
+              hasEmailed
+                ? undefined
+                : `mailto:${displayEmail}?subject=${subject}&body=${body}`
+            }
+            onClick={(e) => {
+              if (hasEmailed) e.preventDefault();
+              else setHasEmailed(true);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              padding: "0.875rem",
+              background: hasEmailed
+                ? "rgba(255,255,255,0.1)"
+                : "var(--color-primary, #6366f1)",
+              color: hasEmailed ? "#94a3b8" : "#fff",
+              borderRadius: "0.75rem",
+              textDecoration: "none",
+              fontWeight: 500,
+              fontSize: "0.9rem",
+              transition: "opacity 0.2s",
+              cursor: hasEmailed ? "not-allowed" : "pointer",
+            }}
+            onMouseOver={(e) =>
+              !hasEmailed && (e.currentTarget.style.opacity = "0.88")
+            }
+            onMouseOut={(e) =>
+              !hasEmailed && (e.currentTarget.style.opacity = "1")
+            }
+          >
+            <Mail size={16} /> {hasEmailed ? "Email Sent" : "Email HR"}
+          </a>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "0.75rem",
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "0.75rem",
+              color: "#94a3b8",
+              fontWeight: 500,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const loginSchema = z.object({
   phone: z
@@ -23,6 +286,20 @@ export function Login() {
   const { error } = useToast();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [hrEmail, setHrEmail] = useState("");
+  const [hrName, setHrName] = useState<string | null>(null);
+
+  useEffect(() => {
+    getHrContact()
+      .then(({ email, name }) => {
+        if (email) setHrEmail(email);
+        if (name) setHrName(name);
+      })
+      .catch(() => { });
+  }, []);
 
   const {
     register,
@@ -35,14 +312,29 @@ export function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setIsSubmitting(true);
-      const { nextStep } = await login(data.phone, data.password);
+      const { nextStep } = await login(
+        data.phone,
+        data.password,
+        showCaptcha ? captchaAnswer : undefined,
+      );
 
       if (nextStep === "MFA_CHALLENGE" || nextStep === "MFA_ENROLMENT") {
         navigate("/mfa/verify", { replace: true });
       }
     } catch (err) {
       const apiErr = err as ApiError;
-      error(apiErr.message || "Failed to sign in. Please try again.");
+      const status = (apiErr as unknown as { status?: number }).status;
+      if (status === 428) {
+        // CAPTCHA required by server
+        setShowCaptcha(true);
+        error("CAPTCHA required. Please complete the security check below.");
+      } else if (status === 403) {
+        error("Password expired. Please contact HR to reset your password.");
+      } else {
+        // Any other failure — show captcha proactively
+        setShowCaptcha(true);
+        error(apiErr.message || "Failed to sign in. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -260,15 +552,23 @@ export function Login() {
               <label style={{ fontSize: "0.875rem", fontWeight: 500 }}>
                 Password
               </label>
-              {/* Note: Forgot password is not implemented on the backend yet */}
-              <span
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(true)}
                 style={{
                   fontSize: "0.8rem",
-                  color: "var(--color-text-muted, #94a3b8)",
+                  color: "var(--color-primary, #6366f1)",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  textDecoration: "underline",
+                  textUnderlineOffset: "2px",
                 }}
               >
                 Forgot password? Contact HR
-              </span>
+              </button>
             </div>
             <div style={{ position: "relative" }}>
               <div
@@ -314,6 +614,11 @@ export function Login() {
               </p>
             )}
           </div>
+
+          {/* CAPTCHA — shown after first failed attempt */}
+          {showCaptcha && (
+            <Captcha onToken={() => { }} onAnswer={setCaptchaAnswer} />
+          )}
 
           <button
             type="submit"
@@ -376,6 +681,14 @@ export function Login() {
       <style>{`
         @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
+
+      {showForgotModal && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotModal(false)}
+          hrEmail={hrEmail}
+          hrName={hrName}
+        />
+      )}
     </div>
   );
 }

@@ -78,16 +78,69 @@ export const nextGoogleStep = (user) => {
     : { state: "MFA_ENROLMENT", flowToken: flow(user, "MFA_ENROLMENT", "10m") };
 };
 
-export const startPasswordLogin = async ({ phone, password }) => {
+export const startPasswordLogin = async ({
+  phone,
+  password,
+  captchaToken,
+  captchaAnswer,
+}) => {
   const user = await users.findByPhoneLookupHash(
     hashPhoneLookup(phone),
     "+passwordHash",
   );
+  if (!user) throw new AppError("Invalid phone number or password.", 401);
+
+  if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+    throw new AppError(
+      "Account locked due to too many failed attempts. Try again later.",
+      403,
+    );
+  }
+
+  // CAPTCHA validation
+  if (user.failedLoginAttempts > 0) {
+    if (!captchaToken || !captchaAnswer) {
+      throw new AppError(
+        "CAPTCHA required due to previous failed attempts.",
+        428,
+      );
+    }
+    const [ivHex, encrypted] = captchaToken.split(":");
+    try {
+      const decipher = crypto.createDecipheriv(
+        "aes-256-cbc",
+        env.dbEncryptionKey,
+        Buffer.from(ivHex, "hex"),
+      );
+      let decrypted = decipher.update(encrypted, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+      if (decrypted !== captchaAnswer.toLowerCase()) {
+        throw new Error();
+      }
+    } catch {
+      throw new AppError("Invalid CAPTCHA answer.", 400);
+    }
+  }
+
   const validPassword = Boolean(
-    user?.passwordHash && (await bcrypt.compare(password, user.passwordHash)),
+    user.passwordHash && (await bcrypt.compare(password, user.passwordHash)),
   );
-  if (!validPassword)
+  if (!validPassword) {
+    user.failedLoginAttempts += 1;
+    if (user.failedLoginAttempts >= 5) {
+      user.lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    }
+    await user.save({ validateModifiedOnly: true });
     throw new AppError("Invalid phone number or password.", 401);
+  }
+
+  // Reset failed attempts on success
+  if (user.failedLoginAttempts > 0 || user.lockoutUntil) {
+    user.failedLoginAttempts = 0;
+    user.lockoutUntil = null;
+    await user.save({ validateModifiedOnly: true });
+  }
+
   if (!user.phoneVerified || user.accountStatus !== ACCOUNT_STATUS.ACTIVE)
     throw new AppError("This account is not available for sign-in.", 403);
   return user.mfaEnabled
@@ -100,10 +153,16 @@ export const sendPhoneVerification = async ({ registrationToken, phone }) => {
   const user = await users.findById(userId);
   if (!user || user.accountStatus !== ACCOUNT_STATUS.REGISTRATION)
     throw new AppError("Registration is not available.", 409);
+  const hashed = hashPhoneLookup(phone);
+  const existing = await users.findByPhoneLookupHash(hashed);
+  if (existing && existing.id !== userId) {
+    throw new AppError("Phone number is already registered.", 409);
+  }
+
   const code = newOtp();
   await users.updateById(userId, {
     phoneEncrypted: encrypt(phone),
-    phoneLookupHash: hashPhoneLookup(phone),
+    phoneLookupHash: hashed,
     phoneVerified: false,
   });
   await auth.createOtp({
@@ -152,9 +211,13 @@ export const completeRegistration = async ({
       400,
     );
   const { password, ...profileData } = profile;
+  const newHash = await bcrypt.hash(password, 12);
+
   const updated = await users.completeRegistration(userId, {
     ...profileData,
-    passwordHash: await bcrypt.hash(password, 12),
+    passwordHash: newHash,
+    passwordChangedAt: new Date(),
+    passwordHistory: [newHash],
   });
   await employees.create({
     userId,
@@ -196,14 +259,20 @@ export const approveEmployee = async ({ userId, hrId, req }) => {
 
 export const mfaSetup = async (token) => {
   const userId = verifyPurpose(token, "MFA_ENROLMENT");
-  const user = await users.findById(userId);
+  const user = await users.findById(userId, "+mfaSecretEncrypted");
   if (!user || user.accountStatus !== ACCOUNT_STATUS.ACTIVE)
     throw new AppError("Account is not active.", 403);
-  const secret = generateSecret();
-  await users.updateById(userId, {
-    mfaSecretEncrypted: encrypt(secret),
-    mfaEnabled: false,
-  });
+
+  let secret;
+  if (user.mfaSecretEncrypted) {
+    secret = decrypt(user.mfaSecretEncrypted);
+  } else {
+    secret = generateSecret();
+    await users.updateById(userId, {
+      mfaSecretEncrypted: encrypt(secret),
+      mfaEnabled: false,
+    });
+  }
   return {
     otpauthUrl: generateURI({
       issuer: "Secure HR Portal",
@@ -249,9 +318,14 @@ export const createSession = async (user, req) => {
     mfaVerifiedAt: new Date(),
     userAgent: req.get("user-agent") || "UNKNOWN",
   });
+  const userAgent = req.get("user-agent") || "";
   return {
     user: cleanUser(user),
-    accessToken: generateAccessToken({ user, sessionId: session.id }),
+    accessToken: generateAccessToken({
+      user,
+      sessionId: session.id,
+      userAgent,
+    }),
     refreshToken: rawRefreshToken,
     sessionId: session.id,
   };

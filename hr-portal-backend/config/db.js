@@ -1,4 +1,3 @@
-// config/db.js
 import mongoose from "mongoose";
 import { env } from "./environment.js";
 

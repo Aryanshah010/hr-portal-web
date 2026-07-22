@@ -14,9 +14,12 @@ import * as employees from "../repositories/employeeRepository.js";
 import * as payroll from "../repositories/payrollRepository.js";
 import * as audit from "../repositories/auditRepository.js";
 import { initiateSalaryDisbursement } from "./transactionService.js";
+
 const validId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+
 const checksum = (rows) =>
   crypto.createHash("sha256").update(JSON.stringify(rows)).digest("hex");
+
 const totals = (rows) =>
   rows.reduce(
     (total, row) => ({
@@ -27,6 +30,7 @@ const totals = (rows) =>
     }),
     { grossNPR: 0, taxNPR: 0, deductionsNPR: 0, netNPR: 0 },
   );
+
 const compute = async (period) => {
   const active = await employees.activeForPayroll();
   if (!active.length)
@@ -47,6 +51,7 @@ const compute = async (period) => {
     };
   });
 };
+
 export const createRun = async ({ period, createdBy, dryRun, req }) => {
   const rows = await compute(period);
   const summary = totals(rows);
@@ -116,6 +121,7 @@ export const createRun = async ({ period, createdBy, dryRun, req }) => {
     throw error;
   }
 };
+
 export const submitRun = async (id) => {
   const run = await payroll.transitionRun(id, "DRAFT", {
     status: "PENDING_APPROVAL",
@@ -127,6 +133,7 @@ export const submitRun = async (id) => {
     );
   return run;
 };
+
 export const approveRun = async ({ id, approverId, req }) => {
   const existing = await payroll.getRun(id);
   if (!existing) throw new AppError("Payroll run not found.", 404);
@@ -152,6 +159,7 @@ export const approveRun = async ({ id, approverId, req }) => {
   });
   return run;
 };
+
 export const executeRun = async ({ id, hrId, req }) => {
   const run = await payroll.transitionRun(id, "APPROVED", {
     status: "PROCESSING",
@@ -181,12 +189,14 @@ export const executeRun = async ({ id, hrId, req }) => {
     await payroll.finishProcessingRun(
       run.id,
       "FAILED",
-      "Stripe sandbox payment intent creation failed.",
+      "eSewa payment processing failed.",
     );
     throw error;
   }
 };
+
 export const listRuns = (query) => payroll.listRuns(query);
+
 export const getRun = async (id) => {
   if (!validId(id)) throw new AppError("Invalid payroll run ID.", 400);
   const run = await payroll.getRun(id);

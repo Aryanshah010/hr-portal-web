@@ -1,0 +1,117 @@
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import apiClient from "@/services/apiClient.js";
+
+interface CaptchaProps {
+  onToken: (token: string) => void;
+  onAnswer: (answer: string) => void;
+  error?: string;
+}
+
+const Captcha: React.FC<CaptchaProps> = ({ onToken, onAnswer, error }) => {
+  const [svg, setSvg] = useState<string>("");
+  const [value, setValue] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const onTokenRef = useRef(onToken);
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
+
+  const fetchCaptcha = useCallback(async () => {
+    setLoading(true);
+    setValue("");
+    try {
+
+      const res = await apiClient.get<{
+        status: string;
+        data: { token: string; svg: string };
+      }>("/auth/captcha");
+      setSvg(res.data.data.svg);
+      onTokenRef.current(res.data.data.token);
+    } catch {
+      setSvg("<svg></svg>");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, [fetchCaptcha]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.target.value);
+    onAnswer(e.target.value);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <label
+        style={{
+          fontSize: "0.8rem",
+          color: "var(--color-text-muted)",
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+        }}
+      >
+        Security Check
+      </label>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "0.5rem",
+            padding: "4px",
+            height: "48px",
+            minWidth: "120px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          dangerouslySetInnerHTML={{ __html: loading ? "<svg/>" : svg }}
+        />
+
+        <button
+          type="button"
+          onClick={fetchCaptcha}
+          title="Refresh CAPTCHA"
+          style={{
+            background: "rgba(255,255,255,0.07)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "0.4rem",
+            color: "var(--color-text-muted)",
+            padding: "0.35rem 0.6rem",
+            cursor: "pointer",
+            fontSize: "1rem",
+          }}
+        >
+          ↻
+        </button>
+      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        placeholder="Type the characters above"
+        autoComplete="off"
+        style={{
+          background: "rgba(255,255,255,0.05)",
+          border: `1px solid ${error ? "var(--color-danger)" : "rgba(255,255,255,0.12)"}`,
+          borderRadius: "0.5rem",
+          color: "var(--color-text)",
+          fontSize: "0.95rem",
+          padding: "0.6rem 0.85rem",
+          outline: "none",
+          letterSpacing: "0.15em",
+        }}
+      />
+      {error && (
+        <span style={{ color: "var(--color-danger)", fontSize: "0.8rem" }}>
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Captcha;

@@ -4,8 +4,11 @@ import { csrfProtection } from "../middleware/csrf.js";
 import { parseSecureUpload } from "../middleware/uploadValidator.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
 import * as controller from "../controllers/documentController.js";
+
 const router = express.Router();
+
 router.use(protect);
+
 router.get("/mine", controller.mine);
 router.post(
   "/",
