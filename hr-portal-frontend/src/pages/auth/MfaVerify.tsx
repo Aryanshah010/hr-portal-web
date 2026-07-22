@@ -110,7 +110,7 @@ export function MfaVerify() {
       <div
         style={{
           width: "100%",
-          maxWidth: "90rem",
+          maxWidth: "28rem",
           background: "rgba(255, 255, 255, 0.03)",
           backdropFilter: "blur(12px)",
           border: "1px solid rgba(255, 255, 255, 0.08)",

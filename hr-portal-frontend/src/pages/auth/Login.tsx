@@ -288,7 +288,6 @@ export function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("");
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [hrEmail, setHrEmail] = useState("");
   const [hrName, setHrName] = useState<string | null>(null);
@@ -299,7 +298,7 @@ export function Login() {
         if (email) setHrEmail(email);
         if (name) setHrName(name);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const {
@@ -357,7 +356,7 @@ export function Login() {
       <div
         style={{
           width: "100%",
-          maxWidth: "90rem",
+          maxWidth: "28rem",
           background: "rgba(255, 255, 255, 0.03)",
           backdropFilter: "blur(12px)",
           border: "1px solid rgba(255, 255, 255, 0.08)",
@@ -618,7 +617,7 @@ export function Login() {
 
           {/* CAPTCHA — shown after first failed attempt */}
           {showCaptcha && (
-            <Captcha onToken={() => {}} onAnswer={setCaptchaAnswer} />
+            <Captcha onToken={() => { }} onAnswer={setCaptchaAnswer} />
           )}
 
           <button
