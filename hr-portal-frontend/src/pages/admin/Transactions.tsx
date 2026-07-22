@@ -130,14 +130,26 @@ export function Transactions() {
         </p>
       </div>
 
-      <DataTable
-        data={transactions}
-        columns={columns}
-        keyExtractor={(t) => t._id}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={fetchData}
-      />
+      {loading ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "var(--color-text-muted, #94a3b8)",
+          }}
+        >
+          Loading transactions...
+        </div>
+      ) : (
+        <DataTable
+          data={transactions}
+          columns={columns}
+          keyExtractor={(t) => t._id}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={fetchData}
+        />
+      )}
     </div>
   );
 }

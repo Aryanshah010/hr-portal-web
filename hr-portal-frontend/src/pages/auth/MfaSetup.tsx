@@ -7,7 +7,7 @@ import { getMfaSetup } from "@/services/authService.js";
 import { useToast } from "@/context/ToastContext.js";
 import { QrCode, Loader2, KeyRound } from "lucide-react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import type { ApiError } from "@/types/index.js";
+import type { ApiError, MfaSetupPayload } from "@/types/index.js";
 
 const mfaSchema = z.object({
   code: z
@@ -24,10 +24,7 @@ export function MfaSetup() {
   const navigate = useNavigate();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [setupData, setSetupData] = useState<{
-    otpauthUrl: string;
-    qrCodeDataUrl: string;
-  } | null>(null);
+  const [setupData, setSetupData] = useState<MfaSetupPayload | null>(null);
   const [loadingSetup, setLoadingSetup] = useState(true);
 
   const {
@@ -87,7 +84,7 @@ export function MfaSetup() {
       const apiErr = err as ApiError;
       error(
         apiErr.message ||
-          "Verification failed. Please check the code and try again.",
+        "Verification failed. Please check the code and try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -191,7 +188,7 @@ export function MfaSetup() {
               }}
             >
               <img
-                src={setupData.qrCodeDataUrl}
+                src={setupData.qrCodeUrl}
                 alt="MFA QR Code"
                 width={180}
                 height={180}

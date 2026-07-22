@@ -39,6 +39,7 @@ export function EmployeeManagement() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   // Modals
   const [salaryModal, setSalaryModal] = useState<{
@@ -92,12 +93,15 @@ export function EmployeeManagement() {
   }, []);
 
   const onApprove = async (id: string) => {
+    setLoadingAction(id + "approve");
     try {
       await approveEmployee(id);
       success("Employee approved successfully");
       fetchData(page);
     } catch (err: any) {
       error(err.message || "Failed to approve");
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -118,6 +122,7 @@ export function EmployeeManagement() {
 
   const onUpdateRole = async (newRole: "Employee" | "HR") => {
     if (!roleModal.employeeId) return;
+    setLoadingAction(roleModal.employeeId + "role");
     try {
       await changeEmployeeRole(roleModal.employeeId, { role: newRole });
       success(`Role updated to ${newRole}`);
@@ -130,11 +135,14 @@ export function EmployeeManagement() {
       fetchData(page);
     } catch (err: any) {
       error(err.message || "Failed to update role");
+    } finally {
+      setLoadingAction(null);
     }
   };
 
   const onDeleteEmployee = async () => {
     if (!deleteModal.employeeId) return;
+    setLoadingAction(deleteModal.employeeId + "delete");
     try {
       await deleteEmployee(deleteModal.employeeId);
       success("Employee deleted successfully");
@@ -142,6 +150,8 @@ export function EmployeeManagement() {
       fetchData(page);
     } catch (err: any) {
       error(err.message || "Failed to delete employee");
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -244,20 +254,22 @@ export function EmployeeManagement() {
       cell: (u: User) => (
         <button
           onClick={() => onApprove(u._id)}
+          disabled={loadingAction === u._id + "approve"}
           style={{
             padding: "0.4rem 0.75rem",
             background: "var(--color-primary, #6366f1)",
             border: "none",
             color: "white",
             borderRadius: "0.5rem",
-            cursor: "pointer",
+            cursor: loadingAction === u._id + "approve" ? "not-allowed" : "pointer",
+            opacity: loadingAction === u._id + "approve" ? 0.7 : 1,
             display: "flex",
             alignItems: "center",
             gap: "0.35rem",
             fontSize: "0.8rem",
           }}
         >
-          <CheckCircle size={14} /> Approve
+          <CheckCircle size={14} /> {loadingAction === u._id + "approve" ? "Approving..." : "Approve"}
         </button>
       ),
     },
@@ -299,44 +311,62 @@ export function EmployeeManagement() {
         </p>
       </div>
 
-      {pending.length > 0 && (
-        <div>
-          <h2
-            style={{
-              fontSize: "1.1rem",
-              fontWeight: 600,
-              color: "var(--color-warning, #f59e0b)",
-              marginBottom: "1rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            Pending Approvals ({pending.length})
-          </h2>
-          <DataTable
-            data={pending}
-            columns={pendingColumns}
-            keyExtractor={(u) => u._id}
-          />
-        </div>
-      )}
-
-      <div>
-        <h2
-          style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}
+      {loading ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "var(--color-text-muted, #94a3b8)",
+          }}
         >
-          Active Employees
-        </h2>
-        <DataTable
-          data={employees}
-          columns={activeColumns}
-          keyExtractor={(e) => e._id}
-          page={page}
-          totalPages={totalPages}
-          onPageChange={fetchData}
-        />
-      </div>
+          Loading employees...
+        </div>
+      ) : (
+        <>
+          {pending.length > 0 && (
+            <div>
+              <h2
+                style={{
+                  fontSize: "1.1rem",
+                  fontWeight: 600,
+                  color: "var(--color-warning, #f59e0b)",
+                  marginBottom: "1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                Pending Approvals ({pending.length})
+              </h2>
+              <DataTable
+                data={pending}
+                columns={pendingColumns}
+                keyExtractor={(u) => u._id}
+              />
+            </div>
+          )}
+
+          <div>
+            <h2
+              style={{
+                fontSize: "1.1rem",
+                fontWeight: 600,
+                marginBottom: "1rem",
+              }}
+            >
+              Active Employees
+            </h2>
+            <DataTable
+              data={employees}
+              columns={activeColumns}
+              keyExtractor={(e) => e._id}
+              page={page}
+              totalPages={totalPages}
+              onPageChange={fetchData}
+            />
+          </div>
+        </>
+      )}
 
       {/* Salary Modal */}
       <Modal
@@ -411,13 +441,15 @@ export function EmployeeManagement() {
         >
           <button
             onClick={() => onUpdateRole("Employee")}
+            disabled={loadingAction === roleModal.employeeId + "role"}
             style={{
               padding: "1rem",
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "0.75rem",
               color: "white",
-              cursor: "pointer",
+              cursor: loadingAction === roleModal.employeeId + "role" ? "not-allowed" : "pointer",
+              opacity: loadingAction === roleModal.employeeId + "role" ? 0.7 : 1,
             }}
           >
             <User2
@@ -428,13 +460,15 @@ export function EmployeeManagement() {
           </button>
           <button
             onClick={() => onUpdateRole("HR")}
+            disabled={loadingAction === roleModal.employeeId + "role"}
             style={{
               padding: "1rem",
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "0.75rem",
               color: "white",
-              cursor: "pointer",
+              cursor: loadingAction === roleModal.employeeId + "role" ? "not-allowed" : "pointer",
+              opacity: loadingAction === roleModal.employeeId + "role" ? 0.7 : 1,
             }}
           >
             <Shield
@@ -485,6 +519,7 @@ export function EmployeeManagement() {
           </button>
           <button
             onClick={onDeleteEmployee}
+            disabled={loadingAction === deleteModal.employeeId + "delete"}
             style={{
               padding: "0.75rem 1.25rem",
               background: "#ef4444",
@@ -492,10 +527,11 @@ export function EmployeeManagement() {
               borderRadius: "0.5rem",
               color: "white",
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: loadingAction === deleteModal.employeeId + "delete" ? "not-allowed" : "pointer",
+              opacity: loadingAction === deleteModal.employeeId + "delete" ? 0.7 : 1,
             }}
           >
-            Yes, Delete Employee
+            {loadingAction === deleteModal.employeeId + "delete" ? "Deleting..." : "Yes, Delete Employee"}
           </button>
         </div>
       </Modal>

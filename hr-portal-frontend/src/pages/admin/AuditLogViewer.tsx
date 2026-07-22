@@ -84,14 +84,26 @@ export function AuditLogViewer() {
         </p>
       </div>
 
-      <DataTable
-        data={logs}
-        columns={columns}
-        keyExtractor={(l) => l._id}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={fetchData}
-      />
+      {loading ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "var(--color-text-muted, #94a3b8)",
+          }}
+        >
+          Loading audit logs...
+        </div>
+      ) : (
+        <DataTable
+          data={logs}
+          columns={columns}
+          keyExtractor={(l) => l._id}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={fetchData}
+        />
+      )}
     </div>
   );
 }

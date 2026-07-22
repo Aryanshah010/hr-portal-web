@@ -1,14 +1,21 @@
 import { useAuth } from "@/context/AuthContext.js";
 import { LogOut, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
-    navigate("/login");
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate("/login");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   if (!user) return null;
@@ -53,6 +60,7 @@ export function Navbar() {
         </div>
         <button
           onClick={handleLogout}
+          disabled={isLoggingOut}
           style={{
             display: "flex",
             alignItems: "center",
@@ -60,11 +68,12 @@ export function Navbar() {
             background: "transparent",
             border: "none",
             color: "var(--color-text-muted, #94a3b8)",
-            cursor: "pointer",
+            cursor: isLoggingOut ? "not-allowed" : "pointer",
             fontSize: "0.9rem",
             padding: "0.5rem",
             borderRadius: "0.5rem",
             transition: "color 0.2s, background-color 0.2s",
+            opacity: isLoggingOut ? 0.7 : 1,
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.color = "var(--color-danger, #ef4444)";
