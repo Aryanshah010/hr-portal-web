@@ -1,27 +1,29 @@
-.DS_Store
-Thumbs.db
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Global dependencies
+node_modules/
+dist/
+build/
 
+# Secrets and Environment Variables
 **/.env
-**/.env.local
-**/.env.development.local
-**/.env.test.local
-**/.env.production.local
-**/certs/
+**/.env.*
+**/*.local
+**/secrets/
+
+# Certificates and Keys
 **/*.pem
 **/*.key
+**/*.cert
+**/*.crt
+**/certs/
 
+# Monorepo specific ignores
 hr-portal-backend/node_modules/
-hr-portal-backend/pids
-hr-portal-backend/lib-cov
 hr-portal-backend/coverage/
 hr-portal-backend/.nyc_output/
-hr-portal-backend/.vscode/
-hr-portal-backend/.idea/
+hr-portal-backend/private-documents/
+hr-portal-backend/uploads/
+hr-portal-backend/pids
+hr-portal-backend/lib-cov
 
 hr-portal-frontend/node_modules/
 hr-portal-frontend/dist/
@@ -30,10 +32,22 @@ hr-portal-frontend/.svelte-kit/
 hr-portal-frontend/.next/
 hr-portal-frontend/out/
 
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Logs
+**/*.log
+**/logs/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# OS Files
+**/.DS_Store
+**/Thumbs.db
+
+# Editor / IDE
+**/.vscode/
+**/.idea/
+**/*.suo
+**/*.ntvs*
+**/*.njsproj
+**/*.sln
+**/*.sw?

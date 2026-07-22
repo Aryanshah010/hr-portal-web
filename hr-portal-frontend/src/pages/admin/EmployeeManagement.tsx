@@ -159,7 +159,24 @@ export function EmployeeManagement() {
     {
       header: "Name",
       cell: (e: Employee) => (
-        <strong style={{ color: "white" }}>{e.name}</strong>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <img
+            src={
+              e.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                e.name
+              )}&background=random&color=fff&size=32`
+            }
+            alt={`${e.name} avatar`}
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              objectFit: "cover",
+            }}
+          />
+          <strong style={{ color: "white" }}>{e.name}</strong>
+        </div>
       ),
     },
     { header: "Email", accessorKey: "email" as keyof Employee },
@@ -244,7 +261,34 @@ export function EmployeeManagement() {
   ];
 
   const pendingColumns = [
-    { header: "Email", accessorKey: "email" as keyof User },
+    {
+      header: "User",
+      cell: (u: User) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <img
+            src={
+              u.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                u.name || u.email
+              )}&background=random&color=fff&size=32`
+            }
+            alt={`${u.name || u.email} avatar`}
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              objectFit: "cover",
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <strong style={{ color: "white" }}>{u.name || "Unspecified"}</strong>
+            <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+              {u.email}
+            </span>
+          </div>
+        </div>
+      ),
+    },
     {
       header: "Registered",
       cell: (u: User) => new Date(u.createdAt).toLocaleDateString(),

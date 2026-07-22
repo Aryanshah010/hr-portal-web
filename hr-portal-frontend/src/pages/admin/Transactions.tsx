@@ -79,7 +79,30 @@ export function Transactions() {
   const columns = [
     {
       header: "Employee",
-      cell: (tx: any) => tx.employeeId?.name || tx.employeeId,
+      cell: (tx: any) => {
+        const name = tx.employeeId?.name || tx.employeeId || "Unknown";
+        const avatarUrl = tx.employeeId?.avatarUrl;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <img
+              src={
+                avatarUrl ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  name
+                )}&background=random&color=fff&size=32`
+              }
+              alt={`${name} avatar`}
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
+            <strong style={{ color: "white" }}>{name}</strong>
+          </div>
+        );
+      },
     },
     { header: "Type", cell: (tx: Transaction) => tx.type.replace("_", " ") },
     {
