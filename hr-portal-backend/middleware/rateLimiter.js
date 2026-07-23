@@ -59,6 +59,17 @@ export const authLimiter = rateLimit({
   },
 });
 
+export const captchaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "CAPTCHA Request Limit Reached",
+    message: "Too many CAPTCHA requests. Please wait before trying again.",
+  },
+});
+
 export const attendanceMutationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,

@@ -52,11 +52,26 @@ export function ReviewManagement() {
     }
   };
 
+  // The API caps `limit` at 50, so walk the pages to populate the picker with
+  // every active employee rather than just the first page.
+  const fetchEmployees = async () => {
+    try {
+      const first = await listEmployees({ page: 1, limit: 50 });
+      let all = first.data.items;
+      const pages = Math.min(first.data.pages || 1, 20);
+      for (let p = 2; p <= pages; p++) {
+        const next = await listEmployees({ page: p, limit: 50 });
+        all = all.concat(next.data.items);
+      }
+      setEmployees(all);
+    } catch (err: any) {
+      error(err.message || "Failed to load employees");
+    }
+  };
+
   useEffect(() => {
     fetchData(1);
-    listEmployees({ limit: 100 })
-      .then((res) => setEmployees(res.data.items))
-      .catch(() => {});
+    fetchEmployees();
   }, []);
 
   const onSubmit = async (data: any) => {

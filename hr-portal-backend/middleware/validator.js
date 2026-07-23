@@ -74,7 +74,12 @@ export const schemas = {
   employeeList: page
     .extend({
       department: safe(1, 100).optional(),
-      active: z.coerce.boolean().optional(),
+      // Query values arrive as strings and z.coerce.boolean() maps "false" to
+      // true, which made inactive employees impossible to list.
+      active: z
+        .enum(["true", "false"])
+        .transform((v) => v === "true")
+        .optional(),
     })
     .strict(),
   id: z.object({ id: objectId }).strict(),

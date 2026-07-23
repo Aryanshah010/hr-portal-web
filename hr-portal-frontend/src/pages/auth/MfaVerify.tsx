@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext.js";
 import { sendMfaRecovery } from "@/services/authService.js";
 import { useToast } from "@/context/ToastContext.js";
 import { ShieldCheck, Loader2, KeyRound } from "lucide-react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import type { ApiError } from "@/types/index.js";
 
 const mfaSchema = z.object({
@@ -27,6 +27,9 @@ export function MfaVerify() {
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [isRequestingRecovery, setIsRequestingRecovery] = useState(false);
   const [recoveryCooldown, setRecoveryCooldown] = useState(0);
+
+  const location = useLocation();
+  const isOAuth = new URLSearchParams(location.search).get("oauth") === "true";
 
   const {
     register,
@@ -52,19 +55,23 @@ export function MfaVerify() {
     }
   }, [recoveryCooldown]);
 
-  if (!mfaPending) {
+  // After a Google redirect this is a cold page load, so `mfaPending` (in-memory
+  // only) is false even though the server issued an mfa_flow cookie. Trust the
+  // oauth marker to render the form; the cookie is what actually authorises the
+  // verify call, and an absent/expired one fails server-side.
+  if (!mfaPending && !isOAuth) {
     return <Navigate to="/dashboard" replace />;
   }
 
   const onSubmit = async (data: MfaFormValues) => {
     try {
       setIsSubmitting(true);
-      if (isRecoveryMode) {
-        await completeMfaRecovery(data.code);
-      } else {
-        await completeMfa(data.code, false);
-      }
-      navigate("/dashboard", { replace: true });
+      const user = isRecoveryMode
+        ? await completeMfaRecovery(data.code)
+        : await completeMfa(data.code, false);
+      navigate(user?.role === "HR" ? "/admin/dashboard" : "/dashboard", {
+        replace: true,
+      });
     } catch (err) {
       const apiErr = err as ApiError;
       error(

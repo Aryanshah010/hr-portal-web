@@ -356,7 +356,7 @@ export function Register() {
                     marginBottom: "0.5rem",
                   }}
                 >
-                  Job Title <span style={{ color: "#94a3b8" }}>(Optional)</span>
+                  Job Title
                 </label>
                 <div style={{ position: "relative" }}>
                   <div
@@ -391,7 +391,6 @@ export function Register() {
                   }}
                 >
                   Department{" "}
-                  <span style={{ color: "#94a3b8" }}>(Optional)</span>
                 </label>
                 <div style={{ position: "relative" }}>
                   <div

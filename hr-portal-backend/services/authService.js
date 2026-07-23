@@ -105,21 +105,20 @@ export const startPasswordLogin = async ({
         428,
       );
     }
-    const [ivHex, encrypted] = captchaToken.split(":");
-    try {
-      const decipher = crypto.createDecipheriv(
-        "aes-256-cbc",
-        env.dbEncryptionKey,
-        Buffer.from(ivHex, "hex"),
+
+    const challenge = await auth.consumeCaptcha(hashSecret(captchaToken));
+    if (!challenge)
+      throw new AppError(
+        "CAPTCHA expired or already used. Please try again.",
+        400,
       );
-      let decrypted = decipher.update(encrypted, "hex", "utf8");
-      decrypted += decipher.final("utf8");
-      if (decrypted !== captchaAnswer.toLowerCase()) {
-        throw new Error();
-      }
-    } catch {
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(challenge.answerHash),
+        Buffer.from(hashSecret(captchaAnswer.trim().toLowerCase())),
+      )
+    )
       throw new AppError("Invalid CAPTCHA answer.", 400);
-    }
   }
 
   const validPassword = Boolean(

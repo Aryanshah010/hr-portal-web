@@ -108,6 +108,19 @@ export const changeRole = async (req, res, next) => {
   }
 };
 
+export const reactivate = async (req, res, next) => {
+  try {
+    await employee.reactivateEmployee({
+      targetUserId: req.params.id,
+      hrId: req.user.id,
+      req,
+    });
+    res.status(204).send();
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const listHr = async (_req, res, next) => {
   try {
     res.json({ status: "success", data: { records: await employee.listHr() } });

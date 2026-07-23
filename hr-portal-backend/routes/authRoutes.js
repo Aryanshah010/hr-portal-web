@@ -1,5 +1,5 @@
 import express from "express";
-import { authLimiter } from "../middleware/rateLimiter.js";
+import { authLimiter, captchaLimiter } from "../middleware/rateLimiter.js";
 import { csrfProtection } from "../middleware/csrf.js";
 import { protect } from "../middleware/authGuard.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
@@ -13,7 +13,7 @@ router.get("/oauth/google", authLimiter, controller.googleStart);
 router.get("/oauth/callback", authLimiter, controller.googleCallback);
 router.use(csrfProtection);
 
-router.get("/captcha", getCaptcha);
+router.get("/captcha", captchaLimiter, getCaptcha);
 
 router.post(
   "/login",

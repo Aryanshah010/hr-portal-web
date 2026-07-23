@@ -288,6 +288,8 @@ export function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [hrEmail, setHrEmail] = useState("");
   const [hrName, setHrName] = useState<string | null>(null);
@@ -298,7 +300,7 @@ export function Login() {
         if (email) setHrEmail(email);
         if (name) setHrName(name);
       })
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   const {
@@ -316,6 +318,7 @@ export function Login() {
         data.phone,
         data.password,
         showCaptcha ? captchaAnswer : undefined,
+        showCaptcha ? captchaToken : undefined,
       );
 
       if (nextStep === "MFA_CHALLENGE" || nextStep === "MFA_ENROLMENT") {
@@ -323,15 +326,13 @@ export function Login() {
       }
     } catch (err) {
       const apiErr = err as ApiError;
-      const status = (apiErr as unknown as { status?: number }).status;
-      if (status === 428) {
-        // CAPTCHA required by server
+      setCaptchaAnswer("");
+      setCaptchaKey((n) => n + 1);
+
+      if (apiErr.statusCode === 428) {
         setShowCaptcha(true);
         error("CAPTCHA required. Please complete the security check below.");
-      } else if (status === 403) {
-        error("Password expired. Please contact HR to reset your password.");
       } else {
-        // Any other failure — show captcha proactively
         setShowCaptcha(true);
         error(apiErr.message || "Failed to sign in. Please try again.");
       }
@@ -617,7 +618,11 @@ export function Login() {
 
           {/* CAPTCHA — shown after first failed attempt */}
           {showCaptcha && (
-            <Captcha onToken={() => { }} onAnswer={setCaptchaAnswer} />
+            <Captcha
+              key={captchaKey}
+              onToken={setCaptchaToken}
+              onAnswer={setCaptchaAnswer}
+            />
           )}
 
           <button

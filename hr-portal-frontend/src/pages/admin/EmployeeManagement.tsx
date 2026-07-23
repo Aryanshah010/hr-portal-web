@@ -9,6 +9,7 @@ import {
   approveEmployee,
   listPendingEmployees,
   deleteEmployee,
+  reactivateEmployee,
 } from "@/services/employeeService.js";
 import type { Employee, User } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
@@ -22,6 +23,7 @@ import {
   CheckCircle,
   User2,
   Trash2,
+  RotateCcw,
 } from "lucide-react";
 
 const salarySchema = z.object({
@@ -36,6 +38,7 @@ export function EmployeeManagement() {
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pending, setPending] = useState<User[]>([]);
+  const [suspended, setSuspended] = useState<Employee[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -73,14 +76,16 @@ export function EmployeeManagement() {
   const fetchData = async (p = 1) => {
     setLoading(true);
     try {
-      const [empRes, pendRes] = await Promise.all([
+      const [empRes, pendRes, suspRes] = await Promise.all([
         listEmployees({ page: p, limit: 15 }),
         listPendingEmployees(),
+        listEmployees({ page: 1, limit: 50, active: false }),
       ]);
       setEmployees(empRes.data.items || []);
       setTotalPages(empRes.data.pages || 1);
       setPage(empRes.data.page || 1);
       setPending(pendRes.data.items || []);
+      setSuspended(suspRes.data.items || []);
     } catch (err: any) {
       error(err.message || "Failed to load employees");
     } finally {
@@ -100,6 +105,19 @@ export function EmployeeManagement() {
       fetchData(page);
     } catch (err: any) {
       error(err.message || "Failed to approve");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const onReactivate = async (userId: string) => {
+    setLoadingAction(userId + "reactivate");
+    try {
+      await reactivateEmployee(userId);
+      success("Account reactivated. The user must sign in again.");
+      fetchData(page);
+    } catch (err: any) {
+      error(err.message || "Failed to reactivate account");
     } finally {
       setLoadingAction(null);
     }
@@ -260,6 +278,49 @@ export function EmployeeManagement() {
     },
   ];
 
+  const suspendedColumns = [
+    {
+      header: "Name",
+      cell: (e: Employee) => e.name,
+    },
+    { header: "Email", accessorKey: "email" as keyof Employee },
+    {
+      header: "Department",
+      cell: (e: Employee) => e.department || "—",
+    },
+    {
+      header: "Actions",
+      cell: (e: Employee) => (
+        <button
+          onClick={() => onReactivate(e.userId)}
+          disabled={loadingAction === e.userId + "reactivate"}
+          title="Restore access. The user must sign in again, including MFA."
+          style={{
+            padding: "0.4rem 0.75rem",
+            background: "rgba(16,185,129,0.1)",
+            color: "#10b981",
+            border: "1px solid rgba(16,185,129,0.2)",
+            borderRadius: "0.5rem",
+            cursor:
+              loadingAction === e.userId + "reactivate"
+                ? "not-allowed"
+                : "pointer",
+            opacity: loadingAction === e.userId + "reactivate" ? 0.7 : 1,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.35rem",
+            fontSize: "0.8rem",
+          }}
+        >
+          <RotateCcw size={14} />
+          {loadingAction === e.userId + "reactivate"
+            ? "Reactivating..."
+            : "Reactivate"}
+        </button>
+      ),
+    },
+  ];
+
   const pendingColumns = [
     {
       header: "User",
@@ -386,6 +447,29 @@ export function EmployeeManagement() {
                 data={pending}
                 columns={pendingColumns}
                 keyExtractor={(u) => u._id}
+              />
+            </div>
+          )}
+
+          {suspended.length > 0 && (
+            <div>
+              <h2
+                style={{
+                  fontSize: "1.1rem",
+                  fontWeight: 600,
+                  color: "var(--color-danger, #ef4444)",
+                  marginBottom: "1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                Suspended Accounts ({suspended.length})
+              </h2>
+              <DataTable
+                data={suspended}
+                columns={suspendedColumns}
+                keyExtractor={(e) => e._id}
               />
             </div>
           )}

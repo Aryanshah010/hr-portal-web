@@ -122,7 +122,7 @@ export const createRun = async ({ period, createdBy, dryRun, req }) => {
   }
 };
 
-export const submitRun = async (id) => {
+export const submitRun = async ({ id, actorId, req }) => {
   const run = await payroll.transitionRun(id, "DRAFT", {
     status: "PENDING_APPROVAL",
   });
@@ -131,14 +131,38 @@ export const submitRun = async (id) => {
       "Payroll run cannot be submitted from its current state.",
       409,
     );
+  await audit.record({
+    eventType: "PAYROLL_RUN_SUBMITTED",
+    severity: "HIGH",
+    req,
+    actorId,
+    actorRole: req.user.role,
+    metadata: { payrollRunId: run.id, period: run.period },
+  });
   return run;
 };
 
 export const approveRun = async ({ id, approverId, req }) => {
   const existing = await payroll.getRun(id);
   if (!existing) throw new AppError("Payroll run not found.", 404);
-  if (existing.createdBy.toString() === approverId)
-    throw new AppError("A creator cannot approve their own payroll run.", 403);
+  // Segregation of duties: the HR who raised the run must not also authorise it.
+  // A blocked attempt is itself security-relevant, so it goes to the audit trail
+  // rather than failing silently at the controller.
+  if (existing.createdBy.toString() === approverId) {
+    await audit.record({
+      eventType: "PAYROLL_RUN_APPROVAL_DENIED",
+      severity: "HIGH",
+      req,
+      actorId: approverId,
+      actorRole: req.user.role,
+      metadata: { payrollRunId: existing.id, reason: "SELF_APPROVAL" },
+    });
+    throw new AppError(
+      "Segregation of duties: the HR who created this run cannot approve it. " +
+        "A second HR account must review and approve.",
+      403,
+    );
+  }
   const run = await payroll.transitionRun(id, "PENDING_APPROVAL", {
     status: "APPROVED",
     approvedBy: approverId,
@@ -171,6 +195,19 @@ export const executeRun = async ({ id, hrId, req }) => {
       "Payroll run cannot be executed from its current state.",
       409,
     );
+  await audit.record({
+    eventType: "PAYROLL_RUN_EXECUTED",
+    severity: "CRITICAL",
+    req,
+    actorId: hrId,
+    actorRole: req.user.role,
+    metadata: {
+      payrollRunId: run.id,
+      period: run.period,
+      employeeCount: run.employeeCount,
+      netNPR: run.totals.netNPR,
+    },
+  });
   const payslips = await payroll.findPayslipsForRun(run.id);
   try {
     for (const payslip of payslips) {

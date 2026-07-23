@@ -56,6 +56,13 @@ router.patch(
   controller.changeRole,
 );
 
+router.post(
+  "/employees/:id/reactivate",
+  restrictTo("HR"),
+  csrfProtection,
+  controller.reactivate,
+);
+
 router.get("/hr", restrictTo("HR"), controller.listHr);
 
 router.delete(

@@ -1,12 +1,13 @@
 import apiClient from "./apiClient.js";
 import type { ApiResponse, PaginatedResponse, Employee, User } from "@/types";
 
+// Mirrors the server's strict query schema: unknown keys are rejected, and the
+// active flag is named `active` (not `isActive`).
 export interface EmployeeListQuery {
   page?: number;
   limit?: number;
   department?: string;
-  search?: string;
-  isActive?: boolean;
+  active?: boolean;
 }
 
 export interface ProfileUpdateRequest {
@@ -79,6 +80,11 @@ export const deleteEmployee = async (id: string): Promise<void> => {
   await apiClient.delete(`/employees/${id}`);
 };
 
+/** `id` is the User id, matching the role-change and delete endpoints. */
+export const reactivateEmployee = async (id: string): Promise<void> => {
+  await apiClient.post(`/employees/${id}/reactivate`);
+};
+
 export const updateEmployeeSalary = async (
   id: string,
   body: SalaryUpdateRequest,
@@ -101,9 +107,10 @@ export const changeEmployeeRole = async (
   return res.data;
 };
 
+// The API returns this list under `records`, not `users`.
 export const listHrUsers = async (): Promise<
-  ApiResponse<{ users: User[] }>
+  ApiResponse<{ records: User[] }>
 > => {
-  const res = await apiClient.get<ApiResponse<{ users: User[] }>>("/hr");
+  const res = await apiClient.get<ApiResponse<{ records: User[] }>>("/hr");
   return res.data;
 };

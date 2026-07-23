@@ -25,6 +25,9 @@ export const updateById = (id, update) =>
 export const deactivateByUserId = (userId) =>
   updateByUserId(userId, { isActive: false });
 
+export const activateByUserId = (userId) =>
+  updateByUserId(userId, { isActive: true });
+
 export const list = async ({ page, limit, department, active = true }) => {
   const filter = {
     ...(department && { department }),

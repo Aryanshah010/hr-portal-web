@@ -94,20 +94,19 @@ transactionSchema.index({ status: 1 });
 transactionSchema.index({ esewaReference: 1 }, { sparse: true });
 transactionSchema.index({ payrollRunId: 1, status: 1 }, { sparse: true });
 
-transactionSchema.pre("save", function (next) {
+// Mongoose 9 removed callback-style middleware: a hook declaring `next` is now
+// invoked without one, so this must throw rather than call next(err).
+transactionSchema.pre("save", function () {
   if (!this.isNew) {
     const originalStatus = this.modifiedPaths().includes("status")
       ? this._originalStatus
       : this.status;
     if (originalStatus === "COMPLETED" || originalStatus === "ROLLED_BACK") {
-      return next(
-        new Error(
-          "[Transaction Ledger] IMMUTABILITY VIOLATION: Existing transactions with terminal states (COMPLETED, ROLLED_BACK) cannot be altered.",
-        ),
+      throw new Error(
+        "[Transaction Ledger] IMMUTABILITY VIOLATION: Existing transactions with terminal states (COMPLETED, ROLLED_BACK) cannot be altered.",
       );
     }
   }
-  next();
 });
 
 transactionSchema.post("init", function (doc) {

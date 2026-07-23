@@ -23,14 +23,21 @@ export const completeRegistration = (id, data) =>
 export const activate = (id) =>
   updateById(id, { accountStatus: ACCOUNT_STATUS.ACTIVE });
 
-export const suspend = (id) =>
-  updateById(id, {
-    accountStatus: ACCOUNT_STATUS.SUSPENDED,
-    securityVersion: 1,
-  });
+// Access tokens carry `sv` and authGuard rejects any token whose `sv` no longer
+// matches the user. Incrementing guarantees that every privilege change breaks
+// existing tokens; assigning a literal only worked the first time, because a
+// second change would set it to the value it already held.
+const revokeIssuedTokens = (id, update) =>
+  User.findByIdAndUpdate(
+    id,
+    { $set: update, $inc: { securityVersion: 1 } },
+    { new: true, runValidators: true },
+  );
 
-export const changeRole = (id, role) =>
-  updateById(id, { role, securityVersion: 1 });
+export const suspend = (id) =>
+  revokeIssuedTokens(id, { accountStatus: ACCOUNT_STATUS.SUSPENDED });
+
+export const changeRole = (id, role) => revokeIssuedTokens(id, { role });
 
 export const countActiveHr = () =>
   User.countDocuments({ role: ROLES.HR, accountStatus: ACCOUNT_STATUS.ACTIVE });

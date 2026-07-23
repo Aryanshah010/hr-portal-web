@@ -66,10 +66,15 @@ function App() {
                   </ProtectedRoute>
                 }
               >
+                {/* /dashboard is the generic post-login landing spot, so HR is
+                    forwarded to their own dashboard rather than shown a denial. */}
                 <Route
                   path="/dashboard"
                   element={
-                    <RoleGuard allowedRoles={["Employee"]}>
+                    <RoleGuard
+                      allowedRoles={["Employee"]}
+                      fallback={<Navigate to="/admin/dashboard" replace />}
+                    >
                       <EmployeeDashboard />
                     </RoleGuard>
                   }

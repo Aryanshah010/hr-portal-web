@@ -1,5 +1,6 @@
 import AuthSession from "../models/AuthSession.js";
 import OtpChallenge from "../models/OtpChallenge.js";
+import CaptchaChallenge from "../models/CaptchaChallenge.js";
 
 export const createSession = (data) => AuthSession.create(data);
 
@@ -51,3 +52,12 @@ export const consumeOtp = (id) =>
     { $set: { consumedAt: new Date() } },
     { new: true },
   );
+
+export const createCaptcha = (data) => CaptchaChallenge.create(data);
+
+export const consumeCaptcha = (tokenHash) =>
+  CaptchaChallenge.findOneAndUpdate(
+    { tokenHash, consumedAt: null, expiresAt: { $gt: new Date() } },
+    { $set: { consumedAt: new Date() } },
+    { new: true },
+  ).select("+answerHash");

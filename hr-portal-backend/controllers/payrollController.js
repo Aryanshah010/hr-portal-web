@@ -49,7 +49,13 @@ export const submitRun = async (req, res, next) => {
     ensureId(req.params.id, "payroll run");
     res.status(200).json({
       status: "success",
-      data: { run: await payrollService.submitRun(req.params.id) },
+      data: {
+        run: await payrollService.submitRun({
+          id: req.params.id,
+          actorId: req.user.id,
+          req,
+        }),
+      },
     });
   } catch (error) {
     next(error);

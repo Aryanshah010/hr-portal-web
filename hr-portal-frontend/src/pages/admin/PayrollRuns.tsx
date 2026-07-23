@@ -9,8 +9,10 @@ import {
   approvePayrollRun,
   executePayrollRun,
 } from "@/services/payrollService.js";
+import { listHrUsers } from "@/services/employeeService.js";
 import type { PayrollRun } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
+import { useAuth } from "@/context/AuthContext.js";
 import { DataTable } from "@/components/ui/DataTable.js";
 import { Modal } from "@/components/ui/Modal.js";
 import { FormInput } from "@/components/ui/FormInput.js";
@@ -24,6 +26,8 @@ import {
   Send,
   ShieldCheck,
   PlayCircle,
+  Lock,
+  AlertTriangle,
 } from "lucide-react";
 
 const createRunSchema = z.object({
@@ -32,7 +36,9 @@ const createRunSchema = z.object({
 
 export function PayrollRuns() {
   const { error, success } = useToast();
+  const { user } = useAuth();
   const [runs, setRuns] = useState<PayrollRun[]>([]);
+  const [approverCount, setApproverCount] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +67,9 @@ export function PayrollRuns() {
 
   useEffect(() => {
     fetchData(1);
+    listHrUsers()
+      .then((res) => setApproverCount(res.data.records.length))
+      .catch(() => setApproverCount(null));
   }, []);
 
   const onSubmit = async (data: any) => {
@@ -212,26 +221,47 @@ export function PayrollRuns() {
               <Send size={14} /> Submit
             </button>
           )}
-          {r.status === "PENDING_APPROVAL" && (
-            <button
-              onClick={() => handleAction(r._id, "approve", approvePayrollRun)}
-              disabled={loadingAction === r._id + "approve"}
-              style={{
-                padding: "0.4rem 0.75rem",
-                background: "rgba(16,185,129,0.1)",
-                color: "#10b981",
-                border: "1px solid rgba(16,185,129,0.2)",
-                borderRadius: "0.5rem",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.35rem",
-                fontSize: "0.8rem",
-              }}
-            >
-              <ShieldCheck size={14} /> Approve
-            </button>
-          )}
+          {/* Segregation of duties: the creator can never approve their own run,
+              so show them the blocked state instead of a button that 403s. */}
+          {r.status === "PENDING_APPROVAL" &&
+            (r.createdBy === user?.id ? (
+              <span
+                title="You created this run. A different HR account must approve it."
+                style={{
+                  padding: "0.4rem 0.75rem",
+                  background: "rgba(148,163,184,0.08)",
+                  color: "var(--color-text-muted, #94a3b8)",
+                  border: "1px solid rgba(148,163,184,0.18)",
+                  borderRadius: "0.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  fontSize: "0.8rem",
+                  cursor: "help",
+                }}
+              >
+                <Lock size={14} /> Awaiting another HR
+              </span>
+            ) : (
+              <button
+                onClick={() => handleAction(r._id, "approve", approvePayrollRun)}
+                disabled={loadingAction === r._id + "approve"}
+                style={{
+                  padding: "0.4rem 0.75rem",
+                  background: "rgba(16,185,129,0.1)",
+                  color: "#10b981",
+                  border: "1px solid rgba(16,185,129,0.2)",
+                  borderRadius: "0.5rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  fontSize: "0.8rem",
+                }}
+              >
+                <ShieldCheck size={14} /> Approve
+              </button>
+            ))}
           {r.status === "APPROVED" && (
             <button
               onClick={() => handleAction(r._id, "execute", executePayrollRun)}
@@ -318,6 +348,32 @@ export function PayrollRuns() {
           <Plus size={18} /> New Payroll Run
         </button>
       </div>
+
+      {approverCount !== null && approverCount < 2 && (
+        <div
+          style={{
+            display: "flex",
+            gap: "0.75rem",
+            padding: "1rem 1.25rem",
+            background: "rgba(245,158,11,0.08)",
+            border: "1px solid rgba(245,158,11,0.25)",
+            borderRadius: "0.75rem",
+            color: "#fbbf24",
+            fontSize: "0.875rem",
+            lineHeight: 1.6,
+          }}
+        >
+          <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <strong>No second approver available.</strong> Payroll uses
+            segregation of duties: whoever creates a run cannot approve it. With
+            only one active HR account, submitted runs will stay pending. Promote
+            an active employee to HR from{" "}
+            <strong>Employees &rarr; Change Role</strong>, then approve as that
+            account.
+          </div>
+        </div>
+      )}
 
       <DataTable
         data={runs}
