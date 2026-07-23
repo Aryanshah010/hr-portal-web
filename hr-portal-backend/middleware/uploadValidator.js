@@ -2,7 +2,7 @@ import multer from "multer";
 
 const storage = multer.memoryStorage();
 
-const signatures = [
+export const signatures = [
   { mime: "application/pdf", bytes: Buffer.from("%PDF-") },
   { mime: "image/jpeg", bytes: Buffer.from([0xff, 0xd8, 0xff]) },
   {
@@ -10,6 +10,15 @@ const signatures = [
     bytes: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   },
 ];
+
+export const detectMimeType = (buffer, allowed = null) => {
+  const match = signatures.find(({ bytes }) =>
+    buffer.subarray(0, bytes.length).equals(bytes),
+  );
+  if (!match) return null;
+  if (allowed && !allowed.includes(match.mime)) return null;
+  return match.mime;
+};
 
 const upload = multer({
   storage,

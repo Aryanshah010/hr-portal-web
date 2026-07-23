@@ -19,11 +19,9 @@ export const AUDIT_EVENTS = Object.freeze({
   SSRF_ATTEMPT: "SSRF_ATTEMPT",
   CSRF_TOKEN_INVALID: "CSRF_TOKEN_INVALID",
   RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
-  MALFORMED_PAYLOAD: "MALFORMED_PAYLOAD",
 
   // ── Authorization & RBAC ────
   AUTHZ_ACCESS_DENIED: "AUTHZ_ACCESS_DENIED",
-  AUTHZ_PRIVILEGE_ESCALATION_ATTEMPT: "AUTHZ_PRIVILEGE_ESCALATION_ATTEMPT",
   AUTHZ_IDOR_ATTEMPT: "AUTHZ_IDOR_ATTEMPT",
 
   // ── Data Mutations ─────
@@ -38,7 +36,6 @@ export const AUDIT_EVENTS = Object.freeze({
   PAYROLL_RUN_APPROVAL_DENIED: "PAYROLL_RUN_APPROVAL_DENIED",
   PAYROLL_RUN_EXECUTED: "PAYROLL_RUN_EXECUTED",
   SALARY_DISBURSEMENT_INITIATED: "SALARY_DISBURSEMENT_INITIATED",
-  BANK_ACCOUNT_UPDATED: "BANK_ACCOUNT_UPDATED",
   ATTENDANCE_SUBMITTED: "ATTENDANCE_SUBMITTED",
   ATTENDANCE_APPROVED: "ATTENDANCE_APPROVED",
   ATTENDANCE_REJECTED: "ATTENDANCE_REJECTED",
@@ -46,11 +43,9 @@ export const AUDIT_EVENTS = Object.freeze({
   // ── Data Access ─────
   PII_ACCESS: "PII_ACCESS",
   DATA_EXPORT_REQUESTED: "DATA_EXPORT_REQUESTED",
-  BULK_QUERY_EXECUTED: "BULK_QUERY_EXECUTED",
 
   // ── System ──────
   SYSTEM_STARTUP: "SYSTEM_STARTUP",
-  SYSTEM_ERROR: "SYSTEM_ERROR",
 });
 
 export const AUDIT_SEVERITY = Object.freeze({
@@ -146,14 +141,32 @@ auditLogSchema.index({ ipAddress: 1, eventType: 1 });
 auditLogSchema.index({ severity: 1, timestamp: -1 });
 auditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 63072000 });
 
+const WRITE_ONCE_VIOLATION =
+  "[AuditLog] WRITE-ONCE VIOLATION: Audit log records are immutable. " +
+  "Modification or deletion of existing audit entries is strictly forbidden.";
+
 auditLogSchema.pre("save", function () {
-  if (!this.isNew) {
-    throw new Error(
-      "[AuditLog] WRITE-ONCE VIOLATION: Audit log records are immutable. " +
-        "Modification of existing audit entries is strictly forbidden.",
-    );
-  }
+  if (!this.isNew) throw new Error(WRITE_ONCE_VIOLATION);
 });
+
+auditLogSchema.pre(
+  [
+    "updateOne",
+    "updateMany",
+    "findOneAndUpdate",
+    "findOneAndReplace",
+    "replaceOne",
+  ],
+  function () {
+    throw new Error(WRITE_ONCE_VIOLATION);
+  },
+);
+auditLogSchema.pre(
+  ["deleteOne", "deleteMany", "findOneAndDelete"],
+  function () {
+    throw new Error(WRITE_ONCE_VIOLATION);
+  },
+);
 
 auditLogSchema.statics.record = async function ({
   eventType,

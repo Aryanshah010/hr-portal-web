@@ -10,6 +10,7 @@ import {
   listPendingEmployees,
   deleteEmployee,
   reactivateEmployee,
+  resetEmployeePassword,
 } from "@/services/employeeService.js";
 import type { Employee, User } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
@@ -24,6 +25,7 @@ import {
   User2,
   Trash2,
   RotateCcw,
+  KeyRound,
 } from "lucide-react";
 
 const salarySchema = z.object({
@@ -123,6 +125,24 @@ export function EmployeeManagement() {
     }
   };
 
+  const onResetPassword = async (userId: string, name: string) => {
+    if (
+      !window.confirm(
+        `Reset ${name}'s password?\n\nA temporary password will be sent to their registered phone by SMS, and all their sessions will be revoked.`,
+      )
+    )
+      return;
+    setLoadingAction(userId + "reset");
+    try {
+      await resetEmployeePassword(userId);
+      success(`Temporary password sent to ${name} by SMS.`);
+    } catch (err: any) {
+      error(err.message || "Failed to reset password");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const onUpdateSalary = async (data: any) => {
     if (!salaryModal.employeeId) return;
     try {
@@ -182,7 +202,7 @@ export function EmployeeManagement() {
             src={
               e.avatarUrl ||
               `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                e.name
+                e.name,
               )}&background=random&color=fff&size=32`
             }
             alt={`${e.name} avatar`}
@@ -248,6 +268,31 @@ export function EmployeeManagement() {
             }}
           >
             <Shield size={14} /> Role
+          </button>
+
+          <button
+            onClick={() => onResetPassword(e.userId, e.name)}
+            disabled={loadingAction === e.userId + "reset"}
+            title="Send a temporary password by SMS and revoke all sessions"
+            style={{
+              padding: "0.4rem 0.75rem",
+              background: "rgba(245,158,11,0.1)",
+              border: "1px solid rgba(245,158,11,0.2)",
+              color: "#f59e0b",
+              borderRadius: "0.5rem",
+              cursor:
+                loadingAction === e.userId + "reset"
+                  ? "not-allowed"
+                  : "pointer",
+              opacity: loadingAction === e.userId + "reset" ? 0.7 : 1,
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              fontSize: "0.8rem",
+            }}
+          >
+            <KeyRound size={14} />
+            {loadingAction === e.userId + "reset" ? "Sending…" : "Reset PW"}
           </button>
 
           <button
@@ -330,7 +375,7 @@ export function EmployeeManagement() {
             src={
               u.avatarUrl ||
               `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                u.name || u.email
+                u.name || u.email,
               )}&background=random&color=fff&size=32`
             }
             alt={`${u.name || u.email} avatar`}
@@ -342,8 +387,12 @@ export function EmployeeManagement() {
             }}
           />
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <strong style={{ color: "white" }}>{u.name || "Unspecified"}</strong>
-            <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+            <strong style={{ color: "white" }}>
+              {u.name || "Unspecified"}
+            </strong>
+            <span
+              style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}
+            >
               {u.email}
             </span>
           </div>
@@ -366,7 +415,8 @@ export function EmployeeManagement() {
             border: "none",
             color: "white",
             borderRadius: "0.5rem",
-            cursor: loadingAction === u._id + "approve" ? "not-allowed" : "pointer",
+            cursor:
+              loadingAction === u._id + "approve" ? "not-allowed" : "pointer",
             opacity: loadingAction === u._id + "approve" ? 0.7 : 1,
             display: "flex",
             alignItems: "center",
@@ -374,7 +424,8 @@ export function EmployeeManagement() {
             fontSize: "0.8rem",
           }}
         >
-          <CheckCircle size={14} /> {loadingAction === u._id + "approve" ? "Approving..." : "Approve"}
+          <CheckCircle size={14} />{" "}
+          {loadingAction === u._id + "approve" ? "Approving..." : "Approve"}
         </button>
       ),
     },
@@ -576,8 +627,12 @@ export function EmployeeManagement() {
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "0.75rem",
               color: "white",
-              cursor: loadingAction === roleModal.employeeId + "role" ? "not-allowed" : "pointer",
-              opacity: loadingAction === roleModal.employeeId + "role" ? 0.7 : 1,
+              cursor:
+                loadingAction === roleModal.employeeId + "role"
+                  ? "not-allowed"
+                  : "pointer",
+              opacity:
+                loadingAction === roleModal.employeeId + "role" ? 0.7 : 1,
             }}
           >
             <User2
@@ -595,8 +650,12 @@ export function EmployeeManagement() {
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: "0.75rem",
               color: "white",
-              cursor: loadingAction === roleModal.employeeId + "role" ? "not-allowed" : "pointer",
-              opacity: loadingAction === roleModal.employeeId + "role" ? 0.7 : 1,
+              cursor:
+                loadingAction === roleModal.employeeId + "role"
+                  ? "not-allowed"
+                  : "pointer",
+              opacity:
+                loadingAction === roleModal.employeeId + "role" ? 0.7 : 1,
             }}
           >
             <Shield
@@ -655,11 +714,17 @@ export function EmployeeManagement() {
               borderRadius: "0.5rem",
               color: "white",
               fontWeight: 600,
-              cursor: loadingAction === deleteModal.employeeId + "delete" ? "not-allowed" : "pointer",
-              opacity: loadingAction === deleteModal.employeeId + "delete" ? 0.7 : 1,
+              cursor:
+                loadingAction === deleteModal.employeeId + "delete"
+                  ? "not-allowed"
+                  : "pointer",
+              opacity:
+                loadingAction === deleteModal.employeeId + "delete" ? 0.7 : 1,
             }}
           >
-            {loadingAction === deleteModal.employeeId + "delete" ? "Deleting..." : "Yes, Delete Employee"}
+            {loadingAction === deleteModal.employeeId + "delete"
+              ? "Deleting..."
+              : "Yes, Delete Employee"}
           </button>
         </div>
       </Modal>

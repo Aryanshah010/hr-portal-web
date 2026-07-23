@@ -34,6 +34,7 @@ export default defineConfig({
         cookieDomainRewrite: "localhost",
         cookiePathRewrite: { "*": "/" },
         secure: false,
+        xfwd: true,
       },
     },
 

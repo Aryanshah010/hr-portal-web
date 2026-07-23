@@ -5,6 +5,7 @@ import { csrfProtection } from "../middleware/csrf.js";
 import {
   createPaymentIntent,
   list,
+  verifySignature,
 } from "../controllers/transactionController.js";
 
 const router = express.Router();
@@ -16,6 +17,8 @@ router.get(
   validateRequest(schemas.transactionListQuery, "query"),
   list,
 );
+
+router.get("/:id/verify", protect, restrictTo("HR"), verifySignature);
 
 router.post(
   "/create-payment-intent",

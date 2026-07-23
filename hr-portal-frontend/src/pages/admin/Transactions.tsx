@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
-import { listTransactions } from "@/services/transactionService.js";
+import {
+  listTransactions,
+  verifyTransactionSignature,
+  type SignatureVerification,
+} from "@/services/transactionService.js";
 import type { Transaction } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
 import { DataTable } from "@/components/ui/DataTable.js";
-import { CreditCard, CheckCircle, XCircle, Clock } from "lucide-react";
+import {
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
+} from "lucide-react";
 
 export function Transactions() {
   const { error } = useToast();
@@ -11,6 +23,26 @@ export function Transactions() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [verified, setVerified] = useState<
+    Record<string, SignatureVerification | "checking">
+  >({});
+
+  const onVerify = async (id: string) => {
+    setVerified((prev) => ({ ...prev, [id]: "checking" }));
+    try {
+      const res = await verifyTransactionSignature(id);
+      setVerified((prev) => ({ ...prev, [id]: res.data }));
+      if (!res.data.valid)
+        error("Signature does not match — this ledger row has been altered.");
+    } catch (err: any) {
+      setVerified((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      error(err.message || "Verification failed");
+    }
+  };
 
   const fetchData = async (p = 1) => {
     setLoading(true);
@@ -83,12 +115,14 @@ export function Transactions() {
         const name = tx.employeeId?.name || tx.employeeId || "Unknown";
         const avatarUrl = tx.employeeId?.avatarUrl;
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+          >
             <img
               src={
                 avatarUrl ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  name
+                  name,
                 )}&background=random&color=fff&size=32`
               }
               alt={`${name} avatar`}
@@ -113,6 +147,73 @@ export function Transactions() {
     {
       header: "Created",
       cell: (tx: Transaction) => new Date(tx.createdAt).toLocaleDateString(),
+    },
+    {
+      header: "Integrity",
+      cell: (tx: Transaction) => {
+        const state = verified[tx._id];
+        if (state === "checking")
+          return (
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                color: "var(--color-text-muted, #94a3b8)",
+                fontSize: "0.8rem",
+              }}
+            >
+              <Loader2
+                size={14}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+              Checking…
+            </span>
+          );
+        if (state)
+          return (
+            <span
+              title={state.canonicalPayload}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                color: state.valid
+                  ? "var(--color-success, #10b981)"
+                  : "var(--color-danger, #ef4444)",
+                fontSize: "0.8rem",
+                cursor: "help",
+              }}
+            >
+              {state.valid ? (
+                <ShieldCheck size={14} />
+              ) : (
+                <ShieldAlert size={14} />
+              )}
+              {state.valid ? `Valid (${state.keyId})` : "TAMPERED"}
+            </span>
+          );
+        return (
+          <button
+            onClick={() => onVerify(tx._id)}
+            title="Recompute the canonical payload and check it against the stored RSA-SHA256 signature"
+            style={{
+              padding: "0.35rem 0.7rem",
+              background: "rgba(99,102,241,0.1)",
+              border: "1px solid rgba(99,102,241,0.2)",
+              color: "#6366f1",
+              borderRadius: "0.5rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              fontSize: "0.78rem",
+            }}
+          >
+            <ShieldCheck size={14} /> Verify
+          </button>
+        );
+      },
     },
   ];
 
@@ -173,6 +274,8 @@ export function Transactions() {
           onPageChange={fetchData}
         />
       )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

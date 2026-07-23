@@ -23,12 +23,36 @@ function ForgotPasswordModal({
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [hasEmailed, setHasEmailed] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const trimmedPhone = phone.trim();
+  const trimmedName = name.trim();
+  const phoneError = !trimmedPhone
+    ? "Registered phone number is required"
+    : !/^\+[1-9]\d{7,14}$/.test(trimmedPhone)
+      ? "Use E.164 format, e.g. +9771234567890"
+      : "";
+  const nameError = trimmedName ? "" : "Full name is required";
+  const canEmail = !phoneError && !nameError;
 
   const subject = encodeURIComponent("Password Reset Request");
   const body = encodeURIComponent(
-    `Hello HR Team,\n\nI have forgotten my NexusHR password and would like to request a password reset.\n\nMy registered phone number: ${phone}\nMy name: ${name}\n\nPlease assist me at your earliest convenience.\n\nThank you.`,
+    `Hello HR Team,\n\nI have forgotten my NexusHR password and would like to request a password reset.\n\nMy registered phone number: ${trimmedPhone}\nMy name: ${trimmedName}\n\nPlease assist me at your earliest convenience.\n\nThank you.`,
   );
   const displayEmail = hrEmail || HR_EMAIL_FALLBACK;
+
+  const fieldError = (message: string) =>
+    attempted && message ? (
+      <span
+        style={{
+          display: "block",
+          marginTop: "0.3rem",
+          color: "var(--color-danger, #ef4444)",
+          fontSize: "0.75rem",
+        }}
+      >
+        {message}
+      </span>
+    ) : null;
 
   return (
     <div
@@ -173,13 +197,18 @@ function ForgotPasswordModal({
                 padding: "0.6rem 0.8rem",
                 borderRadius: "0.5rem",
                 background: "rgba(0,0,0,0.25)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: `1px solid ${
+                  attempted && phoneError
+                    ? "var(--color-danger, #ef4444)"
+                    : "rgba(255,255,255,0.1)"
+                }`,
                 color: "#fff",
                 fontSize: "0.9rem",
                 outline: "none",
                 boxSizing: "border-box",
               }}
             />
+            {fieldError(phoneError)}
           </div>
           <div>
             <label
@@ -202,13 +231,18 @@ function ForgotPasswordModal({
                 padding: "0.6rem 0.8rem",
                 borderRadius: "0.5rem",
                 background: "rgba(0,0,0,0.25)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: `1px solid ${
+                  attempted && nameError
+                    ? "var(--color-danger, #ef4444)"
+                    : "rgba(255,255,255,0.1)"
+                }`,
                 color: "#fff",
                 fontSize: "0.9rem",
                 outline: "none",
                 boxSizing: "border-box",
               }}
             />
+            {fieldError(nameError)}
           </div>
         </div>
 
@@ -217,13 +251,22 @@ function ForgotPasswordModal({
         >
           <a
             href={
-              hasEmailed
+              hasEmailed || !canEmail
                 ? undefined
                 : `mailto:${displayEmail}?subject=${subject}&body=${body}`
             }
+            aria-disabled={hasEmailed || !canEmail}
             onClick={(e) => {
-              if (hasEmailed) e.preventDefault();
-              else setHasEmailed(true);
+              if (hasEmailed) {
+                e.preventDefault();
+                return;
+              }
+              if (!canEmail) {
+                e.preventDefault();
+                setAttempted(true);
+                return;
+              }
+              setHasEmailed(true);
             }}
             style={{
               display: "flex",
@@ -231,22 +274,25 @@ function ForgotPasswordModal({
               justifyContent: "center",
               gap: "0.5rem",
               padding: "0.875rem",
-              background: hasEmailed
-                ? "rgba(255,255,255,0.1)"
-                : "var(--color-primary, #6366f1)",
-              color: hasEmailed ? "#94a3b8" : "#fff",
+              background:
+                hasEmailed || !canEmail
+                  ? "rgba(255,255,255,0.1)"
+                  : "var(--color-primary, #6366f1)",
+              color: hasEmailed || !canEmail ? "#94a3b8" : "#fff",
               borderRadius: "0.75rem",
               textDecoration: "none",
               fontWeight: 500,
               fontSize: "0.9rem",
               transition: "opacity 0.2s",
-              cursor: hasEmailed ? "not-allowed" : "pointer",
+              cursor: hasEmailed || !canEmail ? "not-allowed" : "pointer",
             }}
             onMouseOver={(e) =>
-              !hasEmailed && (e.currentTarget.style.opacity = "0.88")
+              !hasEmailed &&
+              canEmail &&
+              (e.currentTarget.style.opacity = "0.88")
             }
             onMouseOut={(e) =>
-              !hasEmailed && (e.currentTarget.style.opacity = "1")
+              !hasEmailed && canEmail && (e.currentTarget.style.opacity = "1")
             }
           >
             <Mail size={16} /> {hasEmailed ? "Email Sent" : "Email HR"}

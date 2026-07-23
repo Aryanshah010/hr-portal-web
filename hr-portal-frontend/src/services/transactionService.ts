@@ -26,6 +26,24 @@ export const createPaymentIntent = async (
   return res.data;
 };
 
+export interface SignatureVerification {
+  valid: boolean;
+  reason: string | null;
+  keyId: string;
+  canonicalPayload: string;
+  amountNPR: number;
+  verifiedAt: string;
+}
+
+export const verifyTransactionSignature = async (
+  id: string,
+): Promise<ApiResponse<SignatureVerification>> => {
+  const res = await apiClient.get<ApiResponse<SignatureVerification>>(
+    `/transactions/${id}/verify`,
+  );
+  return res.data;
+};
+
 export const listTransactions = async (
   query: TransactionListQuery = {},
 ): Promise<PaginatedResponse<Transaction>> => {

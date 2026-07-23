@@ -1,4 +1,5 @@
 import rateLimit from "express-rate-limit";
+import * as audit from "../repositories/auditRepository.js";
 
 const blocklist = new Map();
 
@@ -38,6 +39,14 @@ export const globalLimiter = rateLimit({
   handler: (req, res) => {
     const ip = req.ip || req.socket?.remoteAddress;
     if (ip) blockIp(ip, 60 * 60 * 1000); // 1-hour block
+    audit.record({
+      eventType: "RATE_LIMIT_EXCEEDED",
+      severity: "HIGH",
+      req,
+      actorId: req.user?.id ?? null,
+      actorRole: req.user?.role ?? "Unauthenticated",
+      metadata: { limiter: "GLOBAL", blockedForMs: 60 * 60 * 1000 },
+    });
     res.status(429).json({
       status: "error",
       error: "Too Many Requests",
@@ -56,6 +65,17 @@ export const authLimiter = rateLimit({
     error: "Authentication Blocked",
     message:
       "Too many authentication failures detected from this source. Access locked for 15 minutes to prevent brute-force profiling.",
+  },
+});
+
+export const avatarLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Avatar Update Limit Reached",
+    message: "Too many avatar updates. Please try again later.",
   },
 });
 

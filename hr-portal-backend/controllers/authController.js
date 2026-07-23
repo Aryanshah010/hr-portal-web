@@ -8,6 +8,7 @@ import {
 import * as authService from "../services/authService.js";
 import { issueCsrfToken } from "../middleware/csrf.js";
 import * as userRepo from "../repositories/userRepository.js";
+import * as audit from "../repositories/auditRepository.js";
 
 const secure = env.httpsEnabled;
 
@@ -127,6 +128,7 @@ export const login = async (req, res, next) => {
       password,
       captchaToken,
       captchaAnswer,
+      req,
     });
     flowCookie(res, "mfa_flow", step.flowToken, 10 * 60 * 1000);
     res.json({ status: "success", data: { nextStep: step.state } });
@@ -260,6 +262,14 @@ export const refresh = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     await authService.logout(req.user.sessionId);
+    await audit.record({
+      eventType: "AUTH_LOGOUT",
+      severity: "LOW",
+      req,
+      actorId: req.user.id,
+      actorRole: req.user.role,
+      metadata: { sessionId: req.user.sessionId },
+    });
     clearSession(res);
     res.status(204).send();
   } catch (e) {

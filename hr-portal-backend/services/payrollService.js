@@ -103,6 +103,19 @@ export const createRun = async ({ period, createdBy, dryRun, req }) => {
         employeeCount: payslips.length,
       },
     });
+    await audit.record({
+      eventType: "PAYSLIP_GENERATED",
+      severity: "HIGH",
+      req,
+      actorId: createdBy,
+      actorRole: req.user.role,
+      metadata: {
+        payrollRunId: run.id,
+        period,
+        payslipCount: payslips.length,
+        grossNPR: summary.grossNPR,
+      },
+    });
     return {
       run: run.toObject(),
       payslips: payslips.map((p) => ({
@@ -145,9 +158,6 @@ export const submitRun = async ({ id, actorId, req }) => {
 export const approveRun = async ({ id, approverId, req }) => {
   const existing = await payroll.getRun(id);
   if (!existing) throw new AppError("Payroll run not found.", 404);
-  // Segregation of duties: the HR who raised the run must not also authorise it.
-  // A blocked attempt is itself security-relevant, so it goes to the audit trail
-  // rather than failing silently at the controller.
   if (existing.createdBy.toString() === approverId) {
     await audit.record({
       eventType: "PAYROLL_RUN_APPROVAL_DENIED",
@@ -218,6 +228,7 @@ export const executeRun = async ({ id, hrId, req }) => {
         idempotencyKey: `payroll-${run.id}-${payslip.id}`,
         payrollRunId: run.id,
         payslipId: payslip.id,
+        req,
       });
       await payroll.attachTransaction(payslip.id, result.transactionId);
     }
@@ -245,8 +256,22 @@ export const readPayslip = async ({ runId, employeeId, userId, role, req }) => {
     throw new AppError("Invalid payroll or employee ID.", 400);
   if (role === "Employee") {
     const employee = await employees.findByUserId(userId);
-    if (!employee || employee.id !== employeeId)
+    if (!employee || employee.id !== employeeId) {
+      await audit.record({
+        eventType: "AUTHZ_IDOR_ATTEMPT",
+        severity: "CRITICAL",
+        req,
+        actorId: userId,
+        actorRole: role,
+        metadata: {
+          resource: "PAYSLIP",
+          requestedEmployeeId: employeeId,
+          ownEmployeeId: employee?.id ?? null,
+          payrollRunId: runId,
+        },
+      });
       throw new AppError("You may only access your own payslip.", 403);
+    }
   }
   const payslip = await payroll.findPayslip(runId, employeeId);
   if (!payslip) throw new AppError("Payslip not found.", 404);

@@ -29,6 +29,13 @@ const employeeSchema = new mongoose.Schema(
     },
     department: { type: String, trim: true, maxlength: 100, default: null },
     jobTitle: { type: String, trim: true, maxlength: 100, default: null },
+    avatarStorageName: { type: String, default: null },
+    avatarMimeType: {
+      type: String,
+      enum: ["image/jpeg", "image/png", null],
+      default: null,
+    },
+    avatarSourceUrl: { type: String, default: null, maxlength: 2048 },
     nationalIdEncrypted: {
       type: String,
       select: false,

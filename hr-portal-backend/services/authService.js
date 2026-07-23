@@ -83,14 +83,32 @@ export const startPasswordLogin = async ({
   password,
   captchaToken,
   captchaAnswer,
+  req,
 }) => {
   const user = await users.findByPhoneLookupHash(
     hashPhoneLookup(phone),
     "+passwordHash",
   );
-  if (!user) throw new AppError("Invalid phone number or password.", 401);
+  if (!user) {
+    await audit.record({
+      eventType: "AUTH_LOGIN_FAILURE",
+      severity: "HIGH",
+      req,
+      actorRole: "Unauthenticated",
+      metadata: { reason: "UNKNOWN_ACCOUNT" },
+    });
+    throw new AppError("Invalid phone number or password.", 401);
+  }
 
   if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+    await audit.record({
+      eventType: "AUTH_LOGIN_FAILURE",
+      severity: "HIGH",
+      req,
+      actorId: user.id,
+      actorRole: user.role,
+      metadata: { reason: "ACCOUNT_LOCKED", lockoutUntil: user.lockoutUntil },
+    });
     throw new AppError(
       "Account locked due to too many failed attempts. Try again later.",
       403,
@@ -126,25 +144,157 @@ export const startPasswordLogin = async ({
   );
   if (!validPassword) {
     user.failedLoginAttempts += 1;
-    if (user.failedLoginAttempts >= 5) {
+    const locked = user.failedLoginAttempts >= 5;
+    if (locked) {
       user.lockoutUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
     }
     await user.save({ validateModifiedOnly: true });
+    await audit.record({
+      eventType: "AUTH_LOGIN_FAILURE",
+      severity: "HIGH",
+      req,
+      actorId: user.id,
+      actorRole: user.role,
+      metadata: { attempts: user.failedLoginAttempts, reason: "BAD_PASSWORD" },
+    });
+    if (locked)
+      await audit.record({
+        eventType: "AUTH_ACCOUNT_LOCKED",
+        severity: "CRITICAL",
+        req,
+        actorId: user.id,
+        actorRole: user.role,
+        metadata: { lockoutUntil: user.lockoutUntil, attempts: 5 },
+      });
     throw new AppError("Invalid phone number or password.", 401);
   }
 
-  // Reset failed attempts on success
   if (user.failedLoginAttempts > 0 || user.lockoutUntil) {
     user.failedLoginAttempts = 0;
     user.lockoutUntil = null;
     await user.save({ validateModifiedOnly: true });
   }
 
-  if (!user.phoneVerified || user.accountStatus !== ACCOUNT_STATUS.ACTIVE)
+  if (!user.phoneVerified || user.accountStatus !== ACCOUNT_STATUS.ACTIVE) {
+    await audit.record({
+      eventType: "AUTH_LOGIN_FAILURE",
+      severity: "HIGH",
+      req,
+      actorId: user.id,
+      actorRole: user.role,
+      metadata: {
+        reason: "ACCOUNT_UNAVAILABLE",
+        accountStatus: user.accountStatus,
+      },
+    });
     throw new AppError("This account is not available for sign-in.", 403);
+  }
+
+  await audit.record({
+    eventType: "AUTH_LOGIN_SUCCESS",
+    severity: "MEDIUM",
+    req,
+    actorId: user.id,
+    actorRole: user.role,
+    metadata: { factor: "PASSWORD", mfaEnrolled: user.mfaEnabled },
+  });
   return user.mfaEnabled
     ? { state: "MFA_CHALLENGE", flowToken: flow(user, "MFA_CHALLENGE", "5m") }
     : { state: "MFA_ENROLMENT", flowToken: flow(user, "MFA_ENROLMENT", "10m") };
+};
+
+const PASSWORD_HISTORY_DEPTH = 5;
+
+const isReusedPassword = async (candidate, history = []) => {
+  for (const previous of history) {
+    if (previous && (await bcrypt.compare(candidate, previous))) return true;
+  }
+  return false;
+};
+
+const applyNewPassword = async (userId, newPassword, history) => {
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await users.replacePassword(userId, {
+    passwordHash: newHash,
+    passwordChangedAt: new Date(),
+    passwordHistory: [newHash, ...history].slice(0, PASSWORD_HISTORY_DEPTH),
+  });
+
+  await auth.revokeUserSessions(userId);
+  return newHash;
+};
+
+export const changeOwnPassword = async ({
+  userId,
+  currentPassword,
+  newPassword,
+  req,
+}) => {
+  const user = await users.findById(userId, "+passwordHash +passwordHistory");
+  if (!user?.passwordHash)
+    throw new AppError("This account has no password to change.", 409);
+  if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+    await audit.record({
+      eventType: "AUTH_LOGIN_FAILURE",
+      severity: "HIGH",
+      req,
+      actorId: userId,
+      actorRole: user.role,
+      metadata: { reason: "BAD_CURRENT_PASSWORD_ON_CHANGE" },
+    });
+    throw new AppError("Current password is incorrect.", 401);
+  }
+  if (await isReusedPassword(newPassword, user.passwordHistory))
+    throw new AppError(
+      `You cannot reuse any of your last ${PASSWORD_HISTORY_DEPTH} passwords.`,
+      409,
+    );
+
+  await applyNewPassword(userId, newPassword, user.passwordHistory || []);
+  await audit.record({
+    eventType: "AUTH_PASSWORD_CHANGED",
+    severity: "HIGH",
+    req,
+    actorId: userId,
+    actorRole: user.role,
+    metadata: { selfService: true },
+  });
+};
+
+export const resetPasswordForUser = async ({ targetUserId, hrId, req }) => {
+  const user = await users.findById(
+    targetUserId,
+    "+passwordHash +passwordHistory +phoneEncrypted",
+  );
+  if (!user) throw new AppError("User not found.", 404);
+  if (!user.phoneVerified || !user.phoneEncrypted)
+    throw new AppError(
+      "This account has no verified phone number to send a reset to.",
+      409,
+    );
+
+  let temporaryPassword;
+  do {
+    temporaryPassword = `Hr#${crypto.randomBytes(9).toString("base64url")}9a`;
+  } while (await isReusedPassword(temporaryPassword, user.passwordHistory));
+
+  await applyNewPassword(
+    targetUserId,
+    temporaryPassword,
+    user.passwordHistory || [],
+  );
+  await sendSms({
+    to: decrypt(user.phoneEncrypted),
+    body: `Your HR Portal password was reset by an administrator. Temporary password: ${temporaryPassword}. Change it after signing in.`,
+  });
+  await audit.record({
+    eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+    severity: "CRITICAL",
+    req,
+    actorId: hrId,
+    actorRole: ROLES.HR,
+    metadata: { targetUserId, delivery: "SMS" },
+  });
 };
 
 export const sendPhoneVerification = async ({ registrationToken, phone }) => {

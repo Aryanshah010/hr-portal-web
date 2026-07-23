@@ -13,6 +13,14 @@ const SANITIZER_MODE =
 
 const MAX_DEPTH = 8;
 
+const OPAQUE_VALUE_KEYS = new Set([
+  "password",
+  "newPassword",
+  "currentPassword",
+  "confirmPassword",
+  "captchaAnswer",
+]);
+
 const THREAT_PATTERNS = Object.freeze([
   {
     name: "MONGODB_OPERATOR_KEY_PREFIX",
@@ -95,6 +103,12 @@ function deepScan(target, depth = 0, path = "root") {
           };
         }
       }
+
+      // Recurse so nested operator *keys* are still caught (an attacker sending
+      // {"password":{"$gt":""}} is rejected), but skip value-pattern matching on
+      // secrets, which are compared with bcrypt and never reach a query filter.
+      if (OPAQUE_VALUE_KEYS.has(key) && typeof target[key] === "string")
+        continue;
 
       const threat = deepScan(target[key], depth + 1, `${path}.${key}`);
       if (threat) return threat;

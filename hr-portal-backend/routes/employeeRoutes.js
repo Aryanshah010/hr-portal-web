@@ -1,5 +1,6 @@
 import express from "express";
 import { protect, restrictTo } from "../middleware/authGuard.js";
+import { authLimiter, avatarLimiter } from "../middleware/rateLimiter.js";
 import { csrfProtection } from "../middleware/csrf.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
 import * as controller from "../controllers/employeeController.js";
@@ -18,6 +19,24 @@ router.patch(
 );
 
 router.delete("/me", csrfProtection, controller.deactivateMe);
+
+router.get("/me/avatar", controller.getMyAvatar);
+
+router.post(
+  "/me/avatar",
+  avatarLimiter,
+  csrfProtection,
+  validateRequest(schemas.avatar),
+  controller.setMyAvatar,
+);
+
+router.patch(
+  "/me/password",
+  authLimiter,
+  csrfProtection,
+  validateRequest(schemas.changePassword),
+  controller.changeMyPassword,
+);
 
 router.get(
   "/employees",
@@ -61,6 +80,14 @@ router.post(
   restrictTo("HR"),
   csrfProtection,
   controller.reactivate,
+);
+
+router.post(
+  "/employees/:id/reset-password",
+  restrictTo("HR"),
+  csrfProtection,
+  authLimiter,
+  controller.resetPassword,
 );
 
 router.get("/hr", restrictTo("HR"), controller.listHr);

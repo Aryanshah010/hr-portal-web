@@ -15,6 +15,7 @@ import {
   ipBlocklistMiddleware,
 } from "./middleware/rateLimiter.js";
 import { cleanNoSqlInjection } from "./middleware/nosqlSanitizer.js";
+import * as audit from "./repositories/auditRepository.js";
 import authRoutes from "./routes/authRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
@@ -27,7 +28,8 @@ import auditRoutes from "./routes/auditRoutes.js";
 
 const app = express();
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
+
+app.set("trust proxy", env.trustProxy);
 await connectDatabase();
 app.use(configureSecurityHeaders());
 app.use(enforceSupplementalHeaders);
@@ -54,6 +56,16 @@ app.get("/health", (_req, res) =>
 app.use(globalErrorHandler);
 
 const start = () => {
+  audit.record({
+    eventType: "SYSTEM_STARTUP",
+    severity: "LOW",
+    metadata: {
+      nodeEnv: env.nodeEnv,
+      port: env.port,
+      tls: env.httpsEnabled,
+      trustProxy: env.trustProxy,
+    },
+  });
   if (env.httpsEnabled) {
     const options = {
       cert: fs.readFileSync(env.tlsCertPath),

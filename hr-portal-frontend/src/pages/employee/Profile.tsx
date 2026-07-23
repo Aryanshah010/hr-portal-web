@@ -18,6 +18,7 @@ import { useToast } from "@/context/ToastContext.js";
 import { getMyProfile, updateMyProfile } from "@/services/employeeService.js";
 import type { Employee } from "@/types/index.js";
 import { AvatarUpload } from "@/components/employee/AvatarUpload.js";
+import { ChangePasswordCard } from "@/components/auth/ChangePasswordCard.js";
 
 const safeStr = (label: string) =>
   z
@@ -174,7 +175,7 @@ export function Profile() {
           >
             Photo
           </h2>
-          <AvatarUpload />
+          <AvatarUpload hasExisting={Boolean(profile?.hasAvatar)} />
         </div>
 
         {/* Account info (read-only) */}
@@ -581,6 +582,8 @@ export function Profile() {
             </form>
           )}
         </div>
+
+        <ChangePasswordCard />
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

@@ -79,6 +79,7 @@ export interface Employee {
   _id: string;
   userId: string;
   name: string;
+  hasAvatar?: boolean;
   avatarUrl?: string;
   email: string;
   department: string | null;

@@ -13,6 +13,9 @@ const requireInProduction = (name, fallback = null) => {
   return value;
 };
 
+const INSECURE_DEFAULT_KEYS = new Set(["0".repeat(64), "1".repeat(64)]);
+const allowInsecureDevKeys = process.env.ALLOW_INSECURE_DEV_KEYS === "true";
+
 const encryptionKey = requireInProduction(
   "DATABASE_ENCRYPTION_KEY",
   "0".repeat(64),
@@ -27,6 +30,22 @@ if (
 ) {
   throw new Error(
     "DATABASE_ENCRYPTION_KEY and PAYROLL_ENCRYPTION_KEY must be 64-character hex keys.",
+  );
+}
+for (const [name, value] of [
+  ["DATABASE_ENCRYPTION_KEY", encryptionKey],
+  ["PAYROLL_ENCRYPTION_KEY", payrollKey],
+]) {
+  if (!INSECURE_DEFAULT_KEYS.has(value)) continue;
+  if (isProduction || !allowInsecureDevKeys)
+    throw new Error(
+      `${name} is the built-in placeholder key. Generate one with ` +
+        `"openssl rand -hex 32" and set it in .env. To run without real keys ` +
+        `for throwaway local testing, set ALLOW_INSECURE_DEV_KEYS=true — data ` +
+        `written under the placeholder key is not protected.`,
+    );
+  console.warn(
+    `[SECURITY WARNING] ${name} is the built-in placeholder key. Stored data is NOT protected.`,
   );
 }
 
@@ -92,7 +111,15 @@ export const env = Object.freeze({
   payrollDeductionRate: Number(required("PAYROLL_DEDUCTION_RATE", "0")),
   payrollBatchSize: Number.parseInt(required("PAYROLL_BATCH_SIZE", "25"), 10),
   rsaPrivateKeyPath: required("RSA_PRIVATE_KEY_PATH"),
+  rsaPublicKeyPath: required("RSA_PUBLIC_KEY_PATH", "./public.pem"),
   rsaPublicKeyId: required("RSA_PUBLIC_KEY_ID", "coursework-key-v1"),
+  trustProxy: Number.parseInt(required("TRUST_PROXY", "0"), 10) || 0,
+  avatarHostAllowlist: new Set(
+    required("AVATAR_HOST_ALLOWLIST", "")
+      .split(",")
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean),
+  ),
 });
 
 if (env.isProduction && (!env.tlsCertPath || !env.tlsKeyPath)) {

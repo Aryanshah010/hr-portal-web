@@ -1,6 +1,23 @@
 import { z } from "zod";
+import zxcvbn from "zxcvbn";
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid identifier.");
+
+const strongPassword = z
+  .string()
+  .min(12, "Password must contain at least 12 characters.")
+  .max(128)
+  .regex(/[a-z]/, "Password must contain a lowercase letter.")
+  .regex(/[A-Z]/, "Password must contain an uppercase letter.")
+  .regex(/\d/, "Password must contain a number.")
+  .regex(/[^A-Za-z0-9\s]/, "Password must contain a symbol.")
+  .refine((value) => !/\s/.test(value), "Password cannot contain spaces.")
+  .refine(
+    (value) => zxcvbn(value).score >= 3,
+    "Password is too predictable. Avoid common words, names and sequences.",
+  );
+
+export { strongPassword };
 
 const safe = (min, max) =>
   z
@@ -48,20 +65,21 @@ export const schemas = {
       name: safe(2, 100),
       jobTitle: safe(2, 100),
       department: safe(2, 100),
-      password: z
-        .string()
-        .min(12, "Password must contain at least 12 characters.")
-        .max(128)
-        .regex(/[a-z]/, "Password must contain a lowercase letter.")
-        .regex(/[A-Z]/, "Password must contain an uppercase letter.")
-        .regex(/\d/, "Password must contain a number.")
-        .regex(/[^A-Za-z0-9\s]/, "Password must contain a symbol.")
-        .refine(
-          (value) => !/\s/.test(value),
-          "Password cannot contain spaces.",
-        ),
+      password: strongPassword,
     })
     .strict(),
+
+  avatar: z.object({ url: z.string().trim().url().max(2048) }).strict(),
+  changePassword: z
+    .object({
+      currentPassword: z.string().min(1).max(256),
+      newPassword: strongPassword,
+    })
+    .strict()
+    .refine((d) => d.currentPassword !== d.newPassword, {
+      path: ["newPassword"],
+      message: "New password must differ from the current password.",
+    }),
   profile: z
     .object({
       name: safe(2, 100),
@@ -74,8 +92,6 @@ export const schemas = {
   employeeList: page
     .extend({
       department: safe(1, 100).optional(),
-      // Query values arrive as strings and z.coerce.boolean() maps "false" to
-      // true, which made inactive employees impossible to list.
       active: z
         .enum(["true", "false"])
         .transform((v) => v === "true")

@@ -1,8 +1,12 @@
 import apiClient from "./apiClient.js";
-import type { ApiResponse, PaginatedResponse, Employee, User } from "@/types";
+import type {
+  ApiResponse,
+  ApiMessageResponse,
+  PaginatedResponse,
+  Employee,
+  User,
+} from "@/types";
 
-// Mirrors the server's strict query schema: unknown keys are rejected, and the
-// active flag is named `active` (not `isActive`).
 export interface EmployeeListQuery {
   page?: number;
   limit?: number;
@@ -80,9 +84,43 @@ export const deleteEmployee = async (id: string): Promise<void> => {
   await apiClient.delete(`/employees/${id}`);
 };
 
-/** `id` is the User id, matching the role-change and delete endpoints. */
 export const reactivateEmployee = async (id: string): Promise<void> => {
   await apiClient.post(`/employees/${id}/reactivate`);
+};
+
+export const setMyAvatar = async (
+  url: string,
+): Promise<ApiResponse<{ mimeType: string; bytes: number }>> => {
+  const res = await apiClient.post<
+    ApiResponse<{ mimeType: string; bytes: number }>
+  >("/me/avatar", { url });
+  return res.data;
+};
+
+export const myAvatarUrl = (cacheBust?: string | number): string =>
+  `${import.meta.env.VITE_API_BASE_URL ?? "/api"}/me/avatar${
+    cacheBust ? `?v=${cacheBust}` : ""
+  }`;
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export const changeMyPassword = async (
+  body: ChangePasswordRequest,
+): Promise<ApiMessageResponse> => {
+  const res = await apiClient.patch<ApiMessageResponse>("/me/password", body);
+  return res.data;
+};
+
+export const resetEmployeePassword = async (
+  id: string,
+): Promise<ApiMessageResponse> => {
+  const res = await apiClient.post<ApiMessageResponse>(
+    `/employees/${id}/reset-password`,
+  );
+  return res.data;
 };
 
 export const updateEmployeeSalary = async (
@@ -107,7 +145,6 @@ export const changeEmployeeRole = async (
   return res.data;
 };
 
-// The API returns this list under `records`, not `users`.
 export const listHrUsers = async (): Promise<
   ApiResponse<{ records: User[] }>
 > => {

@@ -2,10 +2,19 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/environment.js";
 import * as authRepository from "../repositories/authRepository.js";
 import * as userRepository from "../repositories/userRepository.js";
+import * as audit from "../repositories/auditRepository.js";
 import { ACCOUNT_STATUS } from "../models/User.js";
 import { uaHash } from "../utils/generateToken.js";
 
 const PASSWORD_EXPIRY_DAYS = 90;
+
+const PASSWORD_EXPIRY_EXEMPT = [
+  "/api/me/password",
+  "/api/auth/me",
+  "/api/auth/logout",
+];
+const isExpiryExempt = (req) =>
+  PASSWORD_EXPIRY_EXEMPT.includes((req.originalUrl || "").split("?")[0]);
 
 export const protect = async (req, res, next) => {
   try {
@@ -31,10 +40,28 @@ export const protect = async (req, res, next) => {
       !user ||
       user.accountStatus !== ACCOUNT_STATUS.ACTIVE ||
       user.securityVersion !== decoded.sv
-    )
+    ) {
+
+      audit.record({
+        eventType: "AUTH_TOKEN_INVALID",
+        severity: "HIGH",
+        req,
+        actorId: user?.id ?? null,
+        actorRole: user?.role ?? "Unauthenticated",
+        metadata: {
+          reason: !session
+            ? "SESSION_REVOKED"
+            : !user
+              ? "USER_MISSING"
+              : user.accountStatus !== ACCOUNT_STATUS.ACTIVE
+                ? "ACCOUNT_INACTIVE"
+                : "SECURITY_VERSION_STALE",
+        },
+      });
       return res
         .status(401)
         .json({ status: "fail", message: "Session invalid or expired." });
+    }
 
     const currentUah = uaHash(req.get("user-agent"));
     if (decoded.uah && decoded.uah !== currentUah)
@@ -43,21 +70,26 @@ export const protect = async (req, res, next) => {
         message: "Session device mismatch. Please sign in again.",
       });
 
+    let passwordExpired = false;
     if (user.passwordChangedAt) {
       const expiryDate = new Date(user.passwordChangedAt);
       expiryDate.setDate(expiryDate.getDate() + PASSWORD_EXPIRY_DAYS);
-      if (new Date() > expiryDate)
-        return res.status(403).json({
-          status: "fail",
-          message: "Password expired. Please reset your password.",
-          code: "PASSWORD_EXPIRED",
-        });
+      passwordExpired = new Date() > expiryDate;
     }
+
+    if (passwordExpired && !isExpiryExempt(req))
+      return res.status(403).json({
+        status: "fail",
+        message: "Password expired. Please change your password to continue.",
+        code: "PASSWORD_EXPIRED",
+      });
+
     req.user = {
       id: user.id,
       role: user.role,
       email: user.email,
       sessionId: session.id,
+      passwordExpired,
     };
     next();
   } catch {
@@ -68,10 +100,18 @@ export const protect = async (req, res, next) => {
 };
 export const restrictTo =
   (...roles) =>
-  (req, res, next) =>
-    roles.includes(req.user?.role)
-      ? next()
-      : res.status(403).json({
-          status: "fail",
-          message: "You do not have permission to perform this action.",
-        });
+  (req, res, next) => {
+    if (roles.includes(req.user?.role)) return next();
+    audit.record({
+      eventType: "AUTHZ_ACCESS_DENIED",
+      severity: "HIGH",
+      req,
+      actorId: req.user?.id ?? null,
+      actorRole: req.user?.role ?? "Unauthenticated",
+      metadata: { requiredRoles: roles, actualRole: req.user?.role ?? null },
+    });
+    return res.status(403).json({
+      status: "fail",
+      message: "You do not have permission to perform this action.",
+    });
+  };

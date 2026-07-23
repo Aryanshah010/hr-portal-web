@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Image, AlertCircle, CheckCircle2, User } from "lucide-react";
+import {
+  Image,
+  AlertCircle,
+  CheckCircle2,
+  User,
+  Save,
+  Loader2,
+} from "lucide-react";
+import { setMyAvatar, myAvatarUrl } from "@/services/employeeService.js";
+import { useToast } from "@/context/ToastContext.js";
+import type { ApiError } from "@/types/index.js";
 
 const PRIVATE_IP_PATTERNS = [
   /^localhost$/i,
@@ -37,15 +47,19 @@ function validateAvatarUrl(raw: string): string | null {
 }
 
 interface AvatarUploadProps {
-  value?: string;
-  onChange?: (url: string) => void;
+  hasExisting?: boolean;
 }
 
-export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
-  const [inputVal, setInputVal] = useState(value ?? "");
-  const [previewUrl, setPreviewUrl] = useState(value ?? "");
+export function AvatarUpload({ hasExisting = false }: AvatarUploadProps) {
+  const { error: toastError, success } = useToast();
+  const [inputVal, setInputVal] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [imgBroken, setImgBroken] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [storedVersion, setStoredVersion] = useState<number | null>(
+    hasExisting ? Date.now() : null,
+  );
 
   const handleInput = (raw: string) => {
     setInputVal(raw);
@@ -60,13 +74,37 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
     if (!err) {
       setPreviewUrl(raw.trim());
       setImgBroken(false);
-      onChange?.(raw.trim());
     } else {
       setPreviewUrl("");
     }
   };
 
+  const handleSave = async () => {
+    const err = validateAvatarUrl(inputVal);
+    if (err) {
+      setError(err);
+      return;
+    }
+    try {
+      setSaving(true);
+      await setMyAvatar(inputVal.trim());
+      setStoredVersion(Date.now());
+      setInputVal("");
+      setPreviewUrl("");
+      success("Profile photo updated.");
+    } catch (e) {
+      toastError((e as ApiError).message || "Could not save that image.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const hasValidPreview = previewUrl && !error && !imgBroken;
+  const displaySrc = hasValidPreview
+    ? previewUrl
+    : storedVersion
+      ? myAvatarUrl(storedVersion)
+      : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -86,11 +124,11 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
             position: "relative",
           }}
         >
-          {hasValidPreview ? (
+          {displaySrc ? (
             <img
-              src={previewUrl}
-              alt="Avatar preview"
-              onError={() => setImgBroken(true)}
+              src={displaySrc}
+              alt="Profile photo"
+              onError={() => hasValidPreview && setImgBroken(true)}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (
@@ -204,6 +242,44 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
           </div>
         )}
 
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !inputVal.trim() || Boolean(error)}
+          style={{
+            marginTop: "0.6rem",
+            padding: "0.6rem 1rem",
+            background:
+              saving || !inputVal.trim() || error
+                ? "rgba(99,102,241,0.3)"
+                : "var(--color-primary, #6366f1)",
+            color: "#fff",
+            border: "none",
+            borderRadius: "0.6rem",
+            fontSize: "0.85rem",
+            fontWeight: 500,
+            cursor:
+              saving || !inputVal.trim() || error ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.45rem",
+          }}
+        >
+          {saving ? (
+            <>
+              <Loader2
+                size={14}
+                style={{ animation: "spin 1s linear infinite" }}
+              />{" "}
+              Fetching…
+            </>
+          ) : (
+            <>
+              <Save size={14} /> Save Photo
+            </>
+          )}
+        </button>
+
         <p
           style={{
             margin: "0.5rem 0 0 0",
@@ -212,9 +288,9 @@ export function AvatarUpload({ value, onChange }: AvatarUploadProps) {
             lineHeight: 1.5,
           }}
         >
-          ⚠️ Local state only — no backend endpoint exists. If an avatar
-          endpoint were added, the server&#39;s SSRF validator would re-validate
-          this URL before any server-side fetch.
+          The server re-validates this URL, refuses internal addresses and
+          redirects, verifies the file really is a JPEG or PNG, then stores it
+          encrypted. Blocked attempts are written to the audit log.
         </p>
       </div>
     </div>

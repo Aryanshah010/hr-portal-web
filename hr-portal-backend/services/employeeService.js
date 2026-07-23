@@ -16,6 +16,7 @@ const visibleProfile = (user, employee, includeSensitive = false) => ({
   employmentType: employee.employmentType,
   joinedAt: employee.joinedAt,
   isActive: employee.isActive,
+  hasAvatar: Boolean(employee.avatarStorageName),
   ...(includeSensitive && {
     nationalId: employee.nationalIdEncrypted
       ? decrypt(employee.nationalIdEncrypted)
@@ -146,25 +147,19 @@ export const reactivateEmployee = async ({ targetUserId, hrId, req }) => {
   const target = await users.findById(targetUserId);
   if (!target || target.accountStatus !== ACCOUNT_STATUS.SUSPENDED)
     throw new AppError("Suspended account not found.", 404);
-  // A suspended account was previously active, so it must still be able to sign
-  // in on its own. Accounts that never finished onboarding go through the
-  // registration/approval flow instead, not this one.
   if (!target.phoneVerified)
     throw new AppError(
       "This account never completed registration and cannot be reactivated.",
       409,
     );
-
-  // Deliberately does not restore revoked sessions or reset securityVersion:
-  // tokens minted before the suspension stay dead and the user must sign in
-  // again, MFA included.
+    
   await Promise.all([
     employees.activateByUserId(targetUserId),
     users.activate(targetUserId),
   ]);
 
   await audit.record({
-    eventType: "EMPLOYEE_UPDATED",
+    eventType: "AUTH_ACCOUNT_UNLOCKED",
     severity: "CRITICAL",
     req,
     actorId: hrId,
