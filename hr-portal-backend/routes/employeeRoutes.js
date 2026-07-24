@@ -2,6 +2,7 @@ import express from "express";
 import { protect, restrictTo } from "../middleware/authGuard.js";
 import { authLimiter, avatarLimiter } from "../middleware/rateLimiter.js";
 import { csrfProtection } from "../middleware/csrf.js";
+import { parseSecureUpload } from "../middleware/uploadValidator.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
 import * as controller from "../controllers/employeeController.js";
 const router = express.Router();
@@ -28,6 +29,14 @@ router.post(
   csrfProtection,
   validateRequest(schemas.avatar),
   controller.setMyAvatar,
+);
+
+router.post(
+  "/me/avatar/upload",
+  avatarLimiter,
+  csrfProtection,
+  parseSecureUpload("avatar"),
+  controller.uploadMyAvatar,
 );
 
 router.patch(
@@ -88,6 +97,12 @@ router.post(
   csrfProtection,
   authLimiter,
   controller.resetPassword,
+);
+
+router.get(
+  "/employees/:id/avatar",
+  restrictTo("HR"),
+  controller.getEmployeeAvatar,
 );
 
 router.get("/hr", restrictTo("HR"), controller.listHr);

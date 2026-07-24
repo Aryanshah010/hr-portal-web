@@ -3,13 +3,13 @@ import type { PaginatedResponse } from "@/types/index.js";
 
 export interface AuditLog {
   _id: string;
-  action: string;
+  eventType: string;
   actorId: string;
-  targetId?: string;
-  details?: Record<string, any>;
+  targetResource?: string;
+  metadata?: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
-  createdAt: string;
+  timestamp: string;
 }
 
 export interface AuditListQuery {

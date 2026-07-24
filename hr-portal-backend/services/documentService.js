@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import AppError from "../utils/appError.js";
 import {
   decrypt,
@@ -59,6 +60,27 @@ export const upload = async ({ userId, type, file, req }) => {
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 const AVATAR_TIMEOUT_MS = 5000;
 const AVATAR_MIMES = ["image/jpeg", "image/png"];
+const AVATAR_MAX_DIMENSION = 512;
+const AVATAR_MAX_PIXELS = 25_000_000; // rejects decompression bombs at decode
+
+// Defense-in-depth: fully decode then re-encode the image. This strips EXIF and
+// any other metadata, flattens polyglot files (valid image header + smuggled
+// payload) into clean pixels, and bounds dimensions. A buffer that merely carries
+// a JPEG/PNG magic number but is not a real image fails to decode and is rejected
+// by the caller. Returns { buffer, mimeType } for the sanitized image.
+const sanitizeImage = async (buffer, mimeType) => {
+  const pipeline = sharp(buffer, { limitInputPixels: AVATAR_MAX_PIXELS })
+    .rotate() // bake in EXIF orientation before metadata is dropped
+    .resize(AVATAR_MAX_DIMENSION, AVATAR_MAX_DIMENSION, {
+      fit: "inside",
+      withoutEnlargement: true,
+    });
+  const clean =
+    mimeType === "image/png"
+      ? await pipeline.png({ compressionLevel: 9 }).toBuffer()
+      : await pipeline.jpeg({ quality: 82 }).toBuffer();
+  return { buffer: clean, mimeType };
+};
 
 export const setAvatarFromUrl = async ({ userId, url, req }) => {
   const employee = await employees.findByUserId(userId);
@@ -123,16 +145,23 @@ export const setAvatarFromUrl = async ({ userId, url, req }) => {
     if (!mimeType)
       throw new AppError("Only JPEG and PNG images are accepted.", 400);
 
+    let clean;
+    try {
+      clean = await sanitizeImage(buffer, mimeType);
+    } catch {
+      throw new AppError("The image could not be processed.", 400);
+    }
+
     const storageName = `${crypto.randomUUID()}.enc`;
     await fs.mkdir(storagePath, { recursive: true, mode: 0o700 });
-    await fs.writeFile(filePath(storageName), encryptBuffer(buffer), {
+    await fs.writeFile(filePath(storageName), encryptBuffer(clean.buffer), {
       mode: 0o600,
     });
 
     const previous = employee.avatarStorageName;
     await employees.updateByUserId(userId, {
       avatarStorageName: storageName,
-      avatarMimeType: mimeType,
+      avatarMimeType: clean.mimeType,
       avatarSourceUrl: target.url,
     });
     if (previous) await fs.unlink(filePath(previous)).catch(() => {});
@@ -146,18 +175,69 @@ export const setAvatarFromUrl = async ({ userId, url, req }) => {
       metadata: {
         action: "AVATAR_SET",
         host: target.hostname,
-        bytes: buffer.byteLength,
-        mimeType,
+        bytes: clean.buffer.byteLength,
+        mimeType: clean.mimeType,
       },
     });
-    return { mimeType, bytes: buffer.byteLength };
+    return { mimeType: clean.mimeType, bytes: clean.buffer.byteLength };
   } finally {
     clearTimeout(timer);
   }
 };
 
-export const readAvatar = async (userId) => {
+// Device upload: no outbound fetch, so there is no SSRF surface here. The buffer
+// arrives already validated by parseSecureUpload (size limit + magic-byte match),
+// but we re-assert JPEG/PNG since that middleware also permits PDFs.
+export const setAvatarFromUpload = async ({ userId, file, req }) => {
   const employee = await employees.findByUserId(userId);
+  if (!employee) throw new AppError("Employee profile not found.", 404);
+
+  const buffer = file.buffer;
+  if (buffer.byteLength === 0 || buffer.byteLength > AVATAR_MAX_BYTES)
+    throw new AppError("Images must be between 1 byte and 2 MB.", 400);
+
+  const mimeType = detectMimeType(buffer, AVATAR_MIMES);
+  if (!mimeType)
+    throw new AppError("Only JPEG and PNG images are accepted.", 400);
+
+  let clean;
+  try {
+    clean = await sanitizeImage(buffer, mimeType);
+  } catch {
+    throw new AppError("The image could not be processed.", 400);
+  }
+
+  const storageName = `${crypto.randomUUID()}.enc`;
+  await fs.mkdir(storagePath, { recursive: true, mode: 0o700 });
+  await fs.writeFile(filePath(storageName), encryptBuffer(clean.buffer), {
+    mode: 0o600,
+  });
+
+  const previous = employee.avatarStorageName;
+  await employees.updateByUserId(userId, {
+    avatarStorageName: storageName,
+    avatarMimeType: clean.mimeType,
+    avatarSourceUrl: null,
+  });
+  if (previous) await fs.unlink(filePath(previous)).catch(() => {});
+
+  await audit.record({
+    eventType: "EMPLOYEE_UPDATED",
+    severity: "MEDIUM",
+    req,
+    actorId: userId,
+    actorRole: req.user.role,
+    metadata: {
+      action: "AVATAR_SET",
+      source: "DEVICE_UPLOAD",
+      bytes: clean.buffer.byteLength,
+      mimeType: clean.mimeType,
+    },
+  });
+  return { mimeType: clean.mimeType, bytes: clean.buffer.byteLength };
+};
+
+const avatarFromEmployee = async (employee) => {
   if (!employee?.avatarStorageName)
     throw new AppError("No avatar has been set.", 404);
   const encrypted = await fs
@@ -170,6 +250,12 @@ export const readAvatar = async (userId) => {
     mimeType: employee.avatarMimeType || "image/png",
   };
 };
+
+export const readAvatar = async (userId) =>
+  avatarFromEmployee(await employees.findByUserId(userId));
+
+export const readAvatarByEmployeeId = async (employeeId) =>
+  avatarFromEmployee(await employees.findById(employeeId));
 
 export const mine = async (userId) => {
   const employee = await employees.findByUserId(userId);

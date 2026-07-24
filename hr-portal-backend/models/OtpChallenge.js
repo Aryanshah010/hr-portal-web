@@ -10,7 +10,7 @@ const otpChallengeSchema = new mongoose.Schema(
     },
     purpose: {
       type: String,
-      enum: ["PHONE_VERIFY", "MFA_RECOVERY"],
+      enum: ["PHONE_VERIFY", "MFA_RECOVERY", "PASSWORD_RESET"],
       required: true,
     },
     codeHash: { type: String, required: true, select: false },

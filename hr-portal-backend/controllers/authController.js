@@ -245,6 +245,38 @@ export const verifyRecovery = async (req, res, next) => {
   }
 };
 
+export const requestPasswordReset = async (req, res, next) => {
+  try {
+    await authService.requestPasswordReset({ phone: req.body.phone, req });
+    // Always the same response, whether or not the phone is registered.
+    res.status(202).json({
+      status: "success",
+      message:
+        "If an account with that phone number exists, a reset code has been sent by SMS.",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const confirmPasswordReset = async (req, res, next) => {
+  try {
+    await authService.confirmPasswordReset({
+      phone: req.body.phone,
+      code: req.body.code,
+      newPassword: req.body.newPassword,
+      req,
+    });
+    res.json({
+      status: "success",
+      message:
+        "Your password has been reset. You can now sign in with your new password.",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const refresh = async (req, res, next) => {
   try {
     const session = await authService.refresh({

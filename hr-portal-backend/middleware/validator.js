@@ -69,6 +69,23 @@ export const schemas = {
     })
     .strict(),
 
+  passwordResetRequest: z
+    .object({
+      phone: z
+        .string()
+        .regex(/^\+[1-9]\d{7,14}$/, "Use an E.164 phone number."),
+    })
+    .strict(),
+  passwordResetConfirm: z
+    .object({
+      phone: z
+        .string()
+        .regex(/^\+[1-9]\d{7,14}$/, "Use an E.164 phone number."),
+      code: z.string().regex(/^\d{6}$/, "Code must contain six digits."),
+      newPassword: strongPassword,
+    })
+    .strict(),
+
   avatar: z.object({ url: z.string().trim().url().max(2048) }).strict(),
   changePassword: z
     .object({

@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image,
   AlertCircle,
   CheckCircle2,
   User,
   Save,
+  Upload,
   Loader2,
 } from "lucide-react";
-import { setMyAvatar, myAvatarUrl } from "@/services/employeeService.js";
+import {
+  setMyAvatar,
+  uploadMyAvatar,
+  myAvatarUrl,
+} from "@/services/employeeService.js";
 import { useToast } from "@/context/ToastContext.js";
 import type { ApiError } from "@/types/index.js";
 
@@ -57,9 +62,18 @@ export function AvatarUpload({ hasExisting = false }: AvatarUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [imgBroken, setImgBroken] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [storedVersion, setStoredVersion] = useState<number | null>(
     hasExisting ? Date.now() : null,
   );
+
+  // `hasExisting` arrives asynchronously (after the profile fetch resolves), so
+  // the useState initializer above sees `false` on first mount. Sync it once the
+  // prop flips true, otherwise a stored avatar shows as the placeholder on reload.
+  useEffect(() => {
+    if (hasExisting) setStoredVersion((v) => v ?? Date.now());
+  }, [hasExisting]);
 
   const handleInput = (raw: string) => {
     setInputVal(raw);
@@ -96,6 +110,33 @@ export function AvatarUpload({ hasExisting = false }: AvatarUploadProps) {
       toastError((e as ApiError).message || "Could not save that image.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked after an error
+    if (!file) return;
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      toastError("Only JPEG and PNG images are accepted.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toastError("Image must be 2 MB or smaller.");
+      return;
+    }
+    try {
+      setUploading(true);
+      await uploadMyAvatar(file);
+      setStoredVersion(Date.now());
+      setInputVal("");
+      setPreviewUrl("");
+      setImgBroken(false);
+      success("Profile photo updated.");
+    } catch (err) {
+      toastError((err as ApiError).message || "Could not upload that image.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -153,9 +194,63 @@ export function AvatarUpload({ hasExisting = false }: AvatarUploadProps) {
               color: "var(--color-text-muted, #94a3b8)",
             }}
           >
-            Paste a public HTTPS image URL below
+            Upload a JPEG or PNG from your device, or paste an image URL
           </p>
         </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg"
+        onChange={handleFileSelect}
+        style={{ display: "none" }}
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        style={{
+          padding: "0.6rem 1rem",
+          background: uploading
+            ? "rgba(99,102,241,0.3)"
+            : "var(--color-primary, #6366f1)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "0.6rem",
+          fontSize: "0.85rem",
+          fontWeight: 500,
+          cursor: uploading ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.45rem",
+        }}
+      >
+        {uploading ? (
+          <>
+            <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />{" "}
+            Uploading…
+          </>
+        ) : (
+          <>
+            <Upload size={14} /> Upload from device
+          </>
+        )}
+      </button>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
+          color: "var(--color-text-muted, #94a3b8)",
+          fontSize: "0.73rem",
+        }}
+      >
+        <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
+        or paste an image URL
+        <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />
       </div>
 
       <div>

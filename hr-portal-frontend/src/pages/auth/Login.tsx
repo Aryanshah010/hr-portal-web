@@ -3,42 +3,89 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthContext.js";
-import { startGoogleOAuth, getHrContact } from "@/services/authService.js";
+import {
+  startGoogleOAuth,
+  requestPasswordReset,
+  confirmPasswordReset,
+} from "@/services/authService.js";
 import { useToast } from "@/context/ToastContext.js";
 import { LogIn, Phone, Lock, Loader2, X, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ApiError } from "@/types/index.js";
 import Captcha from "@/components/Captcha.js";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter.js";
 
-const HR_EMAIL_FALLBACK = "hr@yourcompany.com";
-
-function ForgotPasswordModal({
-  onClose,
-  hrEmail,
-}: {
-  onClose: () => void;
-  hrEmail: string;
-  hrName: string | null;
-}) {
+function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
+  const { error: toastError, success } = useToast();
+  const [step, setStep] = useState<"REQUEST" | "CONFIRM">("REQUEST");
   const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [hasEmailed, setHasEmailed] = useState(false);
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [attempted, setAttempted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const trimmedPhone = phone.trim();
-  const trimmedName = name.trim();
   const phoneError = !trimmedPhone
     ? "Registered phone number is required"
     : !/^\+[1-9]\d{7,14}$/.test(trimmedPhone)
       ? "Use E.164 format, e.g. +9771234567890"
       : "";
-  const nameError = trimmedName ? "" : "Full name is required";
-  const canEmail = !phoneError && !nameError;
+  const codeError = /^\d{6}$/.test(code.trim())
+    ? ""
+    : "Enter the 6-digit code from the SMS.";
+  const passwordError =
+    newPassword.length < 12
+      ? "Password must be at least 12 characters."
+      : newPassword !== confirmPassword
+        ? "Passwords do not match."
+        : "";
 
-  const subject = encodeURIComponent("Password Reset Request");
-  const body = encodeURIComponent(
-    `Hello HR Team,\n\nI have forgotten my NexusHR password and would like to request a password reset.\n\nMy registered phone number: ${trimmedPhone}\nMy name: ${trimmedName}\n\nPlease assist me at your earliest convenience.\n\nThank you.`,
-  );
-  const displayEmail = hrEmail || HR_EMAIL_FALLBACK;
+  const handleRequest = async () => {
+    setAttempted(true);
+    if (phoneError) return;
+    try {
+      setSubmitting(true);
+      const res = await requestPasswordReset(trimmedPhone);
+      success(
+        res.message ||
+          "If that phone number is registered, a reset code has been sent.",
+      );
+      setAttempted(false);
+      setStep("CONFIRM");
+    } catch (e) {
+      toastError(
+        (e as ApiError).message ||
+          "Could not send a reset code. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    setAttempted(true);
+    if (phoneError || codeError || passwordError) return;
+    try {
+      setSubmitting(true);
+      const res = await confirmPasswordReset({
+        phone: trimmedPhone,
+        code: code.trim(),
+        newPassword,
+      });
+      success(
+        res.message ||
+          "Your password has been reset. Sign in with your new password.",
+      );
+      onClose();
+    } catch (e) {
+      toastError(
+        (e as ApiError).message || "Could not reset your password.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const fieldError = (message: string) =>
     attempted && message ? (
@@ -53,6 +100,29 @@ function ForgotPasswordModal({
         {message}
       </span>
     ) : null;
+
+  const inputStyle = (hasError: boolean) => ({
+    width: "100%",
+    padding: "0.6rem 0.8rem",
+    borderRadius: "0.5rem",
+    background: "rgba(0,0,0,0.25)",
+    border: `1px solid ${
+      attempted && hasError
+        ? "var(--color-danger, #ef4444)"
+        : "rgba(255,255,255,0.1)"
+    }`,
+    color: "#fff",
+    fontSize: "0.9rem",
+    outline: "none",
+    boxSizing: "border-box" as const,
+  });
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "0.8rem",
+    color: "#94a3b8",
+    marginBottom: "0.25rem",
+  };
 
   return (
     <div
@@ -104,7 +174,7 @@ function ForgotPasswordModal({
                 color: "var(--color-primary, #6366f1)",
               }}
             >
-              <Mail size={16} />
+              {step === "REQUEST" ? <Phone size={16} /> : <Lock size={16} />}
             </div>
             <h2
               style={{
@@ -114,7 +184,7 @@ function ForgotPasswordModal({
                 color: "#f8fafc",
               }}
             >
-              Forgot Password?
+              Reset Password
             </h2>
           </div>
           <button
@@ -139,180 +209,216 @@ function ForgotPasswordModal({
             lineHeight: 1.6,
           }}
         >
-          Password resets are handled by your HR administrator. Click the button
-          below to send a pre-filled email to HR, or contact them directly.
+          {step === "REQUEST"
+            ? "Enter your registered phone number. If it matches an account, we'll text you a 6-digit reset code."
+            : `Enter the code sent to ${trimmedPhone} and choose a new password. The code expires in 10 minutes.`}
         </p>
 
-        <div
-          style={{
-            background: "rgba(99,102,241,0.08)",
-            border: "1px solid rgba(99,102,241,0.2)",
-            borderRadius: "0.75rem",
-            padding: "0.875rem 1rem",
-            fontSize: "0.85rem",
-            color: "#a5b4fc",
-          }}
-        >
-          <strong style={{ display: "block", marginBottom: "0.25rem" }}>
-            Steps to reset your password:
-          </strong>
-          <ol
-            style={{
-              margin: 0,
-              paddingLeft: "1.1rem",
-              lineHeight: 1.8,
-              color: "#94a3b8",
-            }}
-          >
-            <li>Fill in your name and registered phone number below</li>
-            <li>
-              Click <strong style={{ color: "#a5b4fc" }}>Email HR</strong>
-            </li>
-            <li>HR will verify your identity and reset your password</li>
-            <li>You will receive your new password via SMS</li>
-          </ol>
-        </div>
-
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
-        >
-          <div>
-            <label
+        {step === "REQUEST" ? (
+          <>
+            <div>
+              <label style={labelStyle}>Registered Phone Number</label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+9771234567890"
+                autoComplete="tel"
+                disabled={submitting}
+                style={inputStyle(Boolean(phoneError))}
+              />
+              {fieldError(phoneError)}
+            </div>
+            <div
               style={{
-                display: "block",
-                fontSize: "0.8rem",
-                color: "#94a3b8",
-                marginBottom: "0.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.6rem",
               }}
             >
-              Registered Phone Number
-            </label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+1234567890"
+              <button
+                onClick={handleRequest}
+                disabled={submitting}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  padding: "0.875rem",
+                  background: "var(--color-primary, #6366f1)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "0.75rem",
+                  fontWeight: 500,
+                  fontSize: "0.9rem",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  opacity: submitting ? 0.7 : 1,
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2
+                      size={16}
+                      style={{ animation: "spin 1s linear infinite" }}
+                    />{" "}
+                    Sending…
+                  </>
+                ) : (
+                  "Send reset code"
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  padding: "0.75rem",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "0.75rem",
+                  color: "#94a3b8",
+                  fontWeight: 500,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div
               style={{
-                width: "100%",
-                padding: "0.6rem 0.8rem",
-                borderRadius: "0.5rem",
-                background: "rgba(0,0,0,0.25)",
-                border: `1px solid ${
-                  attempted && phoneError
-                    ? "var(--color-danger, #ef4444)"
-                    : "rgba(255,255,255,0.1)"
-                }`,
-                color: "#fff",
-                fontSize: "0.9rem",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-            {fieldError(phoneError)}
-          </div>
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.8rem",
-                color: "#94a3b8",
-                marginBottom: "0.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
               }}
             >
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
+              <div>
+                <label style={labelStyle}>6-Digit Code</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) =>
+                    setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  placeholder="000000"
+                  autoComplete="one-time-code"
+                  disabled={submitting}
+                  style={{
+                    ...inputStyle(Boolean(codeError)),
+                    letterSpacing: "0.3em",
+                    textAlign: "center",
+                  }}
+                />
+                {fieldError(codeError)}
+              </div>
+              <div>
+                <label style={labelStyle}>New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 12 characters"
+                  autoComplete="new-password"
+                  disabled={submitting}
+                  style={inputStyle(
+                    Boolean(passwordError) && newPassword.length < 12,
+                  )}
+                />
+                {newPassword.length > 0 && (
+                  <PasswordStrengthMeter password={newPassword} />
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter your new password"
+                  autoComplete="new-password"
+                  disabled={submitting}
+                  style={inputStyle(Boolean(passwordError))}
+                />
+                {fieldError(passwordError)}
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.73rem",
+                  color: "#94a3b8",
+                  lineHeight: 1.5,
+                }}
+              >
+                Use 12+ characters with upper- and lower-case letters, a number
+                and a symbol. Avoid common words and past passwords.
+              </p>
+            </div>
+            <div
               style={{
-                width: "100%",
-                padding: "0.6rem 0.8rem",
-                borderRadius: "0.5rem",
-                background: "rgba(0,0,0,0.25)",
-                border: `1px solid ${
-                  attempted && nameError
-                    ? "var(--color-danger, #ef4444)"
-                    : "rgba(255,255,255,0.1)"
-                }`,
-                color: "#fff",
-                fontSize: "0.9rem",
-                outline: "none",
-                boxSizing: "border-box",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.6rem",
               }}
-            />
-            {fieldError(nameError)}
-          </div>
-        </div>
-
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}
-        >
-          <a
-            href={
-              hasEmailed || !canEmail
-                ? undefined
-                : `mailto:${displayEmail}?subject=${subject}&body=${body}`
-            }
-            aria-disabled={hasEmailed || !canEmail}
-            onClick={(e) => {
-              if (hasEmailed) {
-                e.preventDefault();
-                return;
-              }
-              if (!canEmail) {
-                e.preventDefault();
-                setAttempted(true);
-                return;
-              }
-              setHasEmailed(true);
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              padding: "0.875rem",
-              background:
-                hasEmailed || !canEmail
-                  ? "rgba(255,255,255,0.1)"
-                  : "var(--color-primary, #6366f1)",
-              color: hasEmailed || !canEmail ? "#94a3b8" : "#fff",
-              borderRadius: "0.75rem",
-              textDecoration: "none",
-              fontWeight: 500,
-              fontSize: "0.9rem",
-              transition: "opacity 0.2s",
-              cursor: hasEmailed || !canEmail ? "not-allowed" : "pointer",
-            }}
-            onMouseOver={(e) =>
-              !hasEmailed &&
-              canEmail &&
-              (e.currentTarget.style.opacity = "0.88")
-            }
-            onMouseOut={(e) =>
-              !hasEmailed && canEmail && (e.currentTarget.style.opacity = "1")
-            }
-          >
-            <Mail size={16} /> {hasEmailed ? "Email Sent" : "Email HR"}
-          </a>
-          <button
-            onClick={onClose}
-            style={{
-              padding: "0.75rem",
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "0.75rem",
-              color: "#94a3b8",
-              fontWeight: 500,
-              fontSize: "0.9rem",
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
+            >
+              <button
+                onClick={handleConfirm}
+                disabled={submitting}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  padding: "0.875rem",
+                  background: "var(--color-primary, #6366f1)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "0.75rem",
+                  fontWeight: 500,
+                  fontSize: "0.9rem",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  opacity: submitting ? 0.7 : 1,
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2
+                      size={16}
+                      style={{ animation: "spin 1s linear infinite" }}
+                    />{" "}
+                    Resetting…
+                  </>
+                ) : (
+                  "Reset password"
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setStep("REQUEST");
+                  setAttempted(false);
+                  setCode("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                disabled={submitting}
+                style={{
+                  padding: "0.75rem",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "0.75rem",
+                  color: "#94a3b8",
+                  fontWeight: 500,
+                  fontSize: "0.9rem",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                }}
+              >
+                Use a different number
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -337,17 +443,6 @@ export function Login() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaKey, setCaptchaKey] = useState(0);
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [hrEmail, setHrEmail] = useState("");
-  const [hrName, setHrName] = useState<string | null>(null);
-
-  useEffect(() => {
-    getHrContact()
-      .then(({ email, name }) => {
-        if (email) setHrEmail(email);
-        if (name) setHrName(name);
-      })
-      .catch(() => {});
-  }, []);
 
   const {
     register,
@@ -367,7 +462,9 @@ export function Login() {
         showCaptcha ? captchaToken : undefined,
       );
 
-      if (nextStep === "MFA_CHALLENGE" || nextStep === "MFA_ENROLMENT") {
+      if (nextStep === "MFA_ENROLMENT") {
+        navigate("/mfa/setup", { replace: true });
+      } else if (nextStep === "MFA_CHALLENGE") {
         navigate("/mfa/verify", { replace: true });
       }
     } catch (err) {
@@ -734,11 +831,7 @@ export function Login() {
       `}</style>
 
       {showForgotModal && (
-        <ForgotPasswordModal
-          onClose={() => setShowForgotModal(false)}
-          hrEmail={hrEmail}
-          hrName={hrName}
-        />
+        <ForgotPasswordModal onClose={() => setShowForgotModal(false)} />
       )}
     </div>
   );

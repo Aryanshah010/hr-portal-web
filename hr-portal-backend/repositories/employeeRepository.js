@@ -36,7 +36,7 @@ export const list = async ({ page, limit, department, active = true }) => {
   const [employees, total] = await Promise.all([
     Employee.find(filter)
       .select(
-        "name email department jobTitle employmentType joinedAt isActive userId",
+        "name email department jobTitle employmentType joinedAt isActive userId avatarStorageName",
       )
       .sort({ name: 1 })
       .skip((page - 1) * limit)

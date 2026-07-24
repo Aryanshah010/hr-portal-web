@@ -125,9 +125,33 @@ export const setMyAvatar = async (req, res, next) => {
   }
 };
 
+export const uploadMyAvatar = async (req, res, next) => {
+  try {
+    res.status(200).json({
+      status: "success",
+      data: await documents.setAvatarFromUpload({
+        userId: req.user.id,
+        file: req.file,
+        req,
+      }),
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const getMyAvatar = async (req, res, next) => {
   try {
     const avatar = await documents.readAvatar(req.user.id);
+    res.type(avatar.mimeType).send(avatar.buffer);
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const getEmployeeAvatar = async (req, res, next) => {
+  try {
+    const avatar = await documents.readAvatarByEmployeeId(req.params.id);
     res.type(avatar.mimeType).send(avatar.buffer);
   } catch (e) {
     next(e);

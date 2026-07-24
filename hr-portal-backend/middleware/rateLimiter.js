@@ -79,6 +79,18 @@ export const avatarLimiter = rateLimit({
   },
 });
 
+export const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Password Reset Limit Reached",
+    message:
+      "Too many password reset requests from this source. Please wait before trying again.",
+  },
+});
+
 export const captchaLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 40,

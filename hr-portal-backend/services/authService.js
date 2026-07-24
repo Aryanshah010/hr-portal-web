@@ -297,6 +297,93 @@ export const resetPasswordForUser = async ({ targetUserId, hrId, req }) => {
   });
 };
 
+const RESET_OTP_TTL_MS = 10 * 60 * 1000;
+const RESET_OTP_COOLDOWN_MS = 60 * 1000;
+
+// Self-service password reset — step 1. Anti-enumeration: this always resolves
+// the same way regardless of whether the phone belongs to an account. An OTP is
+// only generated and sent when a matching, active, phone-verified user exists,
+// and a short cooldown prevents an attacker from spamming SMS to a real number.
+export const requestPasswordReset = async ({ phone, req }) => {
+  const user = await users.findByPhoneLookupHash(
+    hashPhoneLookup(phone),
+    "+phoneEncrypted",
+  );
+  if (
+    !user ||
+    user.accountStatus !== ACCOUNT_STATUS.ACTIVE ||
+    !user.phoneVerified ||
+    !user.phoneEncrypted
+  )
+    return;
+
+  const existing = await auth.latestOtp(user.id, "PASSWORD_RESET");
+  const onCooldown =
+    existing &&
+    Date.now() - existing.createdAt.getTime() < RESET_OTP_COOLDOWN_MS;
+  if (!onCooldown) {
+    const code = newOtp();
+    await auth.createOtp({
+      userId: user.id,
+      purpose: "PASSWORD_RESET",
+      codeHash: hashSecret(code),
+      expiresAt: new Date(Date.now() + RESET_OTP_TTL_MS),
+    });
+    await sendSms({
+      to: decrypt(user.phoneEncrypted),
+      body: `Your HR Portal password reset code is ${code}. It expires in 10 minutes. If you did not request this, ignore this message.`,
+    });
+  }
+  await audit.record({
+    eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+    severity: "HIGH",
+    req,
+    actorId: user.id,
+    actorRole: user.role,
+    metadata: { channel: "SELF_SERVICE_SMS" },
+  });
+};
+
+// Self-service password reset — step 2. A failure at any identity/OTP step
+// yields the same generic error so the endpoint cannot be used to probe which
+// phone numbers are registered.
+export const confirmPasswordReset = async ({
+  phone,
+  code,
+  newPassword,
+  req,
+}) => {
+  const user = await users.findByPhoneLookupHash(
+    hashPhoneLookup(phone),
+    "+passwordHistory",
+  );
+  if (
+    !user ||
+    user.accountStatus !== ACCOUNT_STATUS.ACTIVE ||
+    !user.phoneVerified
+  )
+    throw new AppError("Invalid or expired verification code.", 400);
+
+  // Throws the same generic message on a wrong/expired/used code.
+  await verifyOtp({ userId: user.id, purpose: "PASSWORD_RESET", code });
+
+  if (await isReusedPassword(newPassword, user.passwordHistory))
+    throw new AppError(
+      `You cannot reuse any of your last ${PASSWORD_HISTORY_DEPTH} passwords.`,
+      409,
+    );
+
+  await applyNewPassword(user.id, newPassword, user.passwordHistory || []);
+  await audit.record({
+    eventType: "AUTH_PASSWORD_CHANGED",
+    severity: "HIGH",
+    req,
+    actorId: user.id,
+    actorRole: user.role,
+    metadata: { selfService: true, via: "SELF_SERVICE_SMS_RESET" },
+  });
+};
+
 export const sendPhoneVerification = async ({ registrationToken, phone }) => {
   const userId = verifyPurpose(registrationToken, "REGISTRATION");
   const user = await users.findById(userId);
@@ -428,7 +515,7 @@ export const mfaSetup = async (token) => {
       label: user.email,
       secret,
     }),
-    qrCodeDataUrl: await QRCode.toDataURL(
+    qrCodeUrl: await QRCode.toDataURL(
       generateURI({
         issuer: "Secure HR Portal",
         label: user.email,

@@ -11,6 +11,7 @@ import {
   deleteEmployee,
   reactivateEmployee,
   resetEmployeePassword,
+  employeeAvatarUrl,
 } from "@/services/employeeService.js";
 import type { Employee, User } from "@/types/index.js";
 import { useToast } from "@/context/ToastContext.js";
@@ -196,26 +197,32 @@ export function EmployeeManagement() {
   const activeColumns = [
     {
       header: "Name",
-      cell: (e: Employee) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <img
-            src={
-              e.avatarUrl ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                e.name,
-              )}&background=random&color=fff&size=32`
-            }
-            alt={`${e.name} avatar`}
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              objectFit: "cover",
-            }}
-          />
-          <strong style={{ color: "white" }}>{e.name}</strong>
-        </div>
-      ),
+      cell: (e: Employee) => {
+        const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          e.name,
+        )}&background=random&color=fff&size=32`;
+        return (
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+          >
+            <img
+              src={e.hasAvatar ? employeeAvatarUrl(e._id) : fallback}
+              alt={`${e.name} avatar`}
+              onError={(ev) => {
+                if (ev.currentTarget.src !== fallback)
+                  ev.currentTarget.src = fallback;
+              }}
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                objectFit: "cover",
+              }}
+            />
+            <strong style={{ color: "white" }}>{e.name}</strong>
+          </div>
+        );
+      },
     },
     { header: "Email", accessorKey: "email" as keyof Employee },
     { header: "Department", accessorKey: "department" as keyof Employee },

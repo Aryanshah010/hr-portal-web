@@ -153,4 +153,28 @@ export const getHrContact = async (): Promise<{
   return res.data.data;
 };
 
+export const requestPasswordReset = async (
+  phone: string,
+): Promise<ApiMessageResponse> => {
+  const res = await apiClient.post<ApiMessageResponse>(
+    "/auth/password-reset/request",
+    { phone },
+    { _skipRefresh: true } as Parameters<typeof apiClient.post>[2],
+  );
+  return res.data;
+};
+
+export const confirmPasswordReset = async (body: {
+  phone: string;
+  code: string;
+  newPassword: string;
+}): Promise<ApiMessageResponse> => {
+  const res = await apiClient.post<ApiMessageResponse>(
+    "/auth/password-reset/confirm",
+    body,
+    { _skipRefresh: true } as Parameters<typeof apiClient.post>[2],
+  );
+  return res.data;
+};
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";

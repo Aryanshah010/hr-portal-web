@@ -1,5 +1,9 @@
 import express from "express";
-import { authLimiter, captchaLimiter } from "../middleware/rateLimiter.js";
+import {
+  authLimiter,
+  captchaLimiter,
+  passwordResetLimiter,
+} from "../middleware/rateLimiter.js";
 import { csrfProtection } from "../middleware/csrf.js";
 import { protect } from "../middleware/authGuard.js";
 import { validateRequest, schemas } from "../middleware/validator.js";
@@ -58,6 +62,18 @@ router.post(
   authLimiter,
   validateRequest(schemas.otp),
   controller.verifyRecovery,
+);
+router.post(
+  "/password-reset/request",
+  passwordResetLimiter,
+  validateRequest(schemas.passwordResetRequest),
+  controller.requestPasswordReset,
+);
+router.post(
+  "/password-reset/confirm",
+  authLimiter,
+  validateRequest(schemas.passwordResetConfirm),
+  controller.confirmPasswordReset,
 );
 router.post("/refresh", authLimiter, controller.refresh);
 router.post("/logout", protect, controller.logout);

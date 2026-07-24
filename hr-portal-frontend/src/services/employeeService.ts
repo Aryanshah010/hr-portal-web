@@ -97,10 +97,26 @@ export const setMyAvatar = async (
   return res.data;
 };
 
+export const uploadMyAvatar = async (
+  file: File,
+): Promise<ApiResponse<{ mimeType: string; bytes: number }>> => {
+  const form = new FormData();
+  form.append("avatar", file);
+  const res = await apiClient.post<
+    ApiResponse<{ mimeType: string; bytes: number }>
+  >("/me/avatar/upload", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
 export const myAvatarUrl = (cacheBust?: string | number): string =>
   `${import.meta.env.VITE_API_BASE_URL ?? "/api"}/me/avatar${
     cacheBust ? `?v=${cacheBust}` : ""
   }`;
+
+export const employeeAvatarUrl = (employeeId: string): string =>
+  `${import.meta.env.VITE_API_BASE_URL ?? "/api"}/employees/${employeeId}/avatar`;
 
 export interface ChangePasswordRequest {
   currentPassword: string;

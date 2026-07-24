@@ -33,18 +33,18 @@ export function AuditLogViewer() {
   const columns = [
     {
       header: "Timestamp",
-      cell: (log: AuditLog) => new Date(log.createdAt).toLocaleString(),
+      cell: (log: AuditLog) => new Date(log.timestamp).toLocaleString(),
     },
     {
       header: "Action",
       cell: (log: AuditLog) => (
         <strong style={{ color: "var(--color-primary, #6366f1)" }}>
-          {log.action}
+          {log.eventType}
         </strong>
       ),
     },
     { header: "Actor ID", accessorKey: "actorId" as keyof AuditLog },
-    { header: "Target ID", accessorKey: "targetId" as keyof AuditLog },
+    { header: "Target ID", accessorKey: "targetResource" as keyof AuditLog },
     { header: "IP Address", accessorKey: "ipAddress" as keyof AuditLog },
   ];
 

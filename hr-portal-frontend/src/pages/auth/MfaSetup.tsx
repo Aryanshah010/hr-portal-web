@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -40,8 +40,16 @@ export function MfaSetup() {
   const searchParams = new URLSearchParams(location.search);
   const isOAuth = searchParams.get("oauth") === "true";
 
+  // Fetch the enrolment secret exactly once. Without this guard the effect
+  // re-runs after `confirmMfa` (which clears the mfa_flow cookie), and in the
+  // OAuth flow `isOAuth` keeps it from early-returning, so it re-requests the
+  // setup with a now-invalid flow token and surfaces a spurious "expired" toast.
+  const hasFetchedRef = useRef(false);
+
   useEffect(() => {
     if (!mfaPending && !isOAuth) return;
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
 
     let mounted = true;
 
@@ -65,7 +73,7 @@ export function MfaSetup() {
     return () => {
       mounted = false;
     };
-  }, [mfaPending, error, setFocus]);
+  }, [mfaPending, isOAuth, error, setFocus]);
 
   if (!mfaPending && !isOAuth) {
     return <Navigate to="/dashboard" replace />;

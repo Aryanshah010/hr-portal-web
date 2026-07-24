@@ -70,7 +70,10 @@ export const updateMyProfile = async ({ userId, input, req }) => {
 export const listEmployees = async (query) => {
   const result = await employees.list(query);
   return {
-    items: result.employees,
+    items: result.employees.map(({ avatarStorageName, ...rest }) => ({
+      ...rest,
+      hasAvatar: Boolean(avatarStorageName),
+    })),
     total: result.total,
     page: query.page,
     pages: Math.ceil(result.total / query.limit),
